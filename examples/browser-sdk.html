@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head><meta charset="UTF-8" /><title>Browser SDK Example</title><link rel="stylesheet" href="../dist/style.css" /></head>
+  <body>
+    <div id="viewer"></div>
+    <script src="../dist/sdk.js"></script>
+    <script>
+      window.HtmlVisualDiff.createHtmlVisualDiffViewer({
+        el:'#viewer',
+        oldHtml:'<article><h1>Title</h1><p>Hello world.</p></article>',
+        newHtml:'<article><h1>New Title</h1><p>Hello visual diff.</p><p>New paragraph.</p></article>',
+        theme:{oldPaneTitle:'Before',newPaneTitle:'After'}
+      });
+    </script>
+  </body>
+</html>
