@@ -6,19 +6,43 @@
   "license": "MIT",
   "author": "vndmea",
   "homepage": "https://github.com/vndmea/html-visual-diff#readme",
-  "repository": {"type": "git", "url": "git+https://github.com/vndmea/html-visual-diff.git"},
-  "bugs": {"url": "https://github.com/vndmea/html-visual-diff/issues"},
-  "keywords": ["html", "diff", "visual-diff", "dom-diff", "rendered-html", "side-by-side", "typescript", "sdk"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vndmea/html-visual-diff.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vndmea/html-visual-diff/issues"
+  },
+  "keywords": [
+    "html",
+    "diff",
+    "visual-diff",
+    "dom-diff",
+    "rendered-html",
+    "side-by-side",
+    "typescript",
+    "sdk"
+  ],
   "packageManager": "pnpm@10.33.0",
-  "engines": {"node": ">=20.19.0"},
-  "files": ["dist", "README.md", "LICENSE"],
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "main": "./dist/html-visual-diff.cjs",
   "module": "./dist/html-visual-diff.js",
   "types": "./dist/index.d.ts",
   "unpkg": "./dist/sdk.js",
   "jsdelivr": "./dist/sdk.js",
   "exports": {
-    ".": {"types": "./dist/index.d.ts", "import": "./dist/html-visual-diff.js", "require": "./dist/html-visual-diff.cjs"},
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/html-visual-diff.js",
+      "require": "./dist/html-visual-diff.cjs"
+    },
     "./style.css": "./dist/style.css",
     "./sdk.js": "./dist/sdk.js"
   },
@@ -31,9 +55,9 @@
     "preview": "vite preview",
     "prepublishOnly": "npm run typecheck && npm run test && npm run build"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/node": "^22.15.0",
+    "jsdom": "^29.1.1",
     "typescript": "^5.8.3",
     "vite": "^8.0.10",
     "vite-plugin-dts": "^4.5.3",
