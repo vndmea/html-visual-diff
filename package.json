@@ -9,6 +9,7 @@
   "repository": {"type": "git", "url": "git+https://github.com/vndmea/html-visual-diff.git"},
   "bugs": {"url": "https://github.com/vndmea/html-visual-diff/issues"},
   "keywords": ["html", "diff", "visual-diff", "dom-diff", "rendered-html", "side-by-side", "typescript", "sdk"],
+  "packageManager": "pnpm@10.33.0",
   "engines": {"node": ">=20.19.0"},
   "files": ["dist", "README.md", "LICENSE"],
   "main": "./dist/html-visual-diff.cjs",
