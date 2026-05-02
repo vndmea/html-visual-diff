@@ -9,7 +9,7 @@ export function resolveElement(el: string | HTMLElement): HTMLElement {
 export function parseHtmlToBody(html: string): HTMLBodyElement {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html || '', 'text/html');
-  return doc.body;
+  return doc.body as HTMLBodyElement;
 }
 
 export function normalizeText(text: string | null | undefined): string {
