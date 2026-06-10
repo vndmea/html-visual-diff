@@ -56,8 +56,6 @@ export class HtmlVisualDiffViewer implements HtmlVisualDiffViewerApi {
       }
     }
 
-    this.renderSummary(shell.summary);
-    this.renderChangeList(shell.changeList);
     this.mountEl.innerHTML = '';
     this.mountEl.appendChild(this.root);
 
@@ -88,28 +86,7 @@ export class HtmlVisualDiffViewer implements HtmlVisualDiffViewerApi {
     if (clearMount && this.mountEl) this.mountEl.innerHTML = '';
   }
 
-  private createShell(): { summary: HTMLElement; changeList: HTMLElement; oldContent: HTMLElement; newContent: HTMLElement } {
-    const showHeader = this.options.theme?.showHeader ?? true;
-    const showSummary = this.options.theme?.showSummary ?? true;
-    const showChangeList = this.options.theme?.showChangeList ?? true;
-
-    if (showHeader) {
-      const header = document.createElement('div');
-      header.className = `${this.prefix}-header`;
-      header.innerHTML = '<strong>HTML Visual Diff</strong>';
-      this.root.appendChild(header);
-    }
-
-    const summary = document.createElement('div');
-    summary.className = `${this.prefix}-summary`;
-    if (!showSummary) summary.style.display = 'none';
-    this.root.appendChild(summary);
-
-    const changeList = document.createElement('div');
-    changeList.className = `${this.prefix}-change-list`;
-    if (!showChangeList) changeList.style.display = 'none';
-    this.root.appendChild(changeList);
-
+  private createShell(): { oldContent: HTMLElement; newContent: HTMLElement } {
     const layout = document.createElement('div');
     layout.className = `${this.prefix}-layout`;
     this.root.appendChild(layout);
@@ -136,34 +113,7 @@ export class HtmlVisualDiffViewer implements HtmlVisualDiffViewerApi {
     oldPane.append(oldTitle, oldContent);
     newPane.append(newTitle, newContent);
     layout.append(oldPane, newPane);
-    return { summary, changeList, oldContent, newContent };
-  }
-
-  private renderSummary(summary: HTMLElement): void {
-    const insertCount = this.changes.filter((item) => item.type === 'insert').length;
-    const deleteCount = this.changes.filter((item) => item.type === 'delete').length;
-    const modifyCount = this.changes.filter((item) => item.type === 'modify').length;
-    summary.innerHTML = `
-      <span class="${this.prefix}-badge ${this.prefix}-badge-insert">新增：${insertCount}</span>
-      <span class="${this.prefix}-badge ${this.prefix}-badge-delete">删除：${deleteCount}</span>
-      <span class="${this.prefix}-badge ${this.prefix}-badge-modify">修改：${modifyCount}</span>
-    `;
-  }
-
-  private renderChangeList(changeList: HTMLElement): void {
-    if (this.changes.length === 0) {
-      changeList.innerHTML = `<span class="${this.prefix}-empty">暂无差异</span>`;
-      return;
-    }
-    changeList.innerHTML = '';
-    this.changes.forEach((change, index) => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = `${this.prefix}-change-item ${this.prefix}-change-item-${change.type}`;
-      button.innerHTML = `<span class="${this.prefix}-dot ${this.prefix}-dot-${change.type}"></span><span>${index + 1}. ${change.label}</span>`;
-      button.addEventListener('click', () => this.scrollToChange(change.id));
-      changeList.appendChild(button);
-    });
+    return { oldContent, newContent };
   }
 
   private bindSyncScroll(source: HTMLElement, target: HTMLElement): void {
@@ -187,6 +137,7 @@ function normalizeOptions(options: HtmlVisualDiffRenderOptions): NormalizedDiffO
     matchThreshold: options.matchThreshold ?? 0.58,
     textModifyThreshold: options.textModifyThreshold ?? 0.35,
     inlineTextDiff: options.inlineTextDiff ?? true,
+    textDiffGranularity: options.textDiffGranularity ?? 'word',
     compareAttributes: options.compareAttributes ?? true,
     ignoreAttributes: new Set(options.ignoreAttributes ?? []),
     ignoreTags: new Set([...DEFAULT_IGNORE_TAGS, ...(options.ignoreTags ?? [])]),
