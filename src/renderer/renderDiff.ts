@@ -59,8 +59,6 @@ function buildElementPair(oldNode: Element, newNode: Element, options: Normalize
   const tag = oldNode.tagName.toLowerCase();
 
   if (options.compareAttributes && !attrsEqual(oldNode, newNode, options.ignoreAttributes)) {
-    oldEl.classList.add(`${ctx.prefix}-attr-modify`);
-    newEl.classList.add(`${ctx.prefix}-attr-modify`);
     addChange(oldEl, 'modify', { label: `修改属性 <${tag}>`, oldPath: nodePath(oldNode), newPath: nodePath(newNode), oldText: serializeAttributes(oldNode), newText: serializeAttributes(newNode) }, options, ctx);
     addChange(newEl, 'modify', { label: `修改属性 <${tag}>`, oldPath: nodePath(oldNode), newPath: nodePath(newNode), oldText: serializeAttributes(oldNode), newText: serializeAttributes(newNode) }, options, ctx);
   }

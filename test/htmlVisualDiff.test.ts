@@ -58,6 +58,20 @@ describe('HtmlVisualDiffViewer', () => {
       expect(changeSpans.length).toBeGreaterThan(0);
     });
 
+    it('merges adjacent inline diff spans into one span', () => {
+      document.body.innerHTML = '<div id="app"></div>';
+      const api = createHtmlVisualDiffViewer({
+        el: '#app',
+        oldHtml: '<p>Hello world</p>',
+        newHtml: '<p>Hello wonderful beautiful world</p>',
+        inlineTextDiff: true,
+        textDiffGranularity: 'word'
+      });
+      const changeSpans = api.newPane.querySelectorAll('.hvd-inline-insert');
+      expect(changeSpans.length).toBe(1);
+      expect(changeSpans[0]?.textContent).toContain('wonderful beautiful');
+    });
+
     it('can switch to char-level granularity', () => {
       document.body.innerHTML = '<div id="app"></div>';
       const api = createHtmlVisualDiffViewer({

@@ -15,8 +15,6 @@ export interface ChangeRecord {
 export interface HtmlVisualDiffTheme {
   classPrefix?: string;
   rootClassName?: string;
-  oldPaneTitle?: string;
-  newPaneTitle?: string;
   showPlaceholders?: boolean;
 }
 

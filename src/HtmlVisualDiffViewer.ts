@@ -98,20 +98,13 @@ export class HtmlVisualDiffViewer implements HtmlVisualDiffViewerApi {
     this.oldPane = oldPane;
     this.newPane = newPane;
 
-    const oldTitle = document.createElement('div');
-    oldTitle.className = `${this.prefix}-pane-title`;
-    oldTitle.textContent = this.options.theme?.oldPaneTitle || '旧版本';
-    const newTitle = document.createElement('div');
-    newTitle.className = `${this.prefix}-pane-title`;
-    newTitle.textContent = this.options.theme?.newPaneTitle || '新版本';
-
     const oldContent = document.createElement('div');
     oldContent.className = `${this.prefix}-content`;
     const newContent = document.createElement('div');
     newContent.className = `${this.prefix}-content`;
 
-    oldPane.append(oldTitle, oldContent);
-    newPane.append(newTitle, newContent);
+    oldPane.append(oldContent);
+    newPane.append(newContent);
     layout.append(oldPane, newPane);
     return { oldContent, newContent };
   }
