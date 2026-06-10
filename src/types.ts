@@ -1,5 +1,6 @@
 export type DiffSide = 'old' | 'new';
 export type DiffType = 'equal' | 'insert' | 'delete' | 'modify' | 'placeholder';
+export type TextDiffGranularity = 'char' | 'word';
 
 export interface ChangeRecord {
   id: string;
@@ -16,9 +17,6 @@ export interface HtmlVisualDiffTheme {
   rootClassName?: string;
   oldPaneTitle?: string;
   newPaneTitle?: string;
-  showHeader?: boolean;
-  showSummary?: boolean;
-  showChangeList?: boolean;
   showPlaceholders?: boolean;
 }
 
@@ -30,6 +28,7 @@ export interface HtmlVisualDiffRenderOptions {
   matchThreshold?: number;
   textModifyThreshold?: number;
   inlineTextDiff?: boolean;
+  textDiffGranularity?: TextDiffGranularity;
   ignoreAttributes?: string[];
   ignoreTags?: string[];
   compareAttributes?: boolean;
@@ -54,6 +53,7 @@ export interface NormalizedDiffOptions {
   matchThreshold: number;
   textModifyThreshold: number;
   inlineTextDiff: boolean;
+  textDiffGranularity: TextDiffGranularity;
   compareAttributes: boolean;
   ignoreAttributes: Set<string>;
   ignoreTags: Set<string>;
