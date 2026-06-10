@@ -123,8 +123,21 @@ export class HtmlVisualDiffViewer implements HtmlVisualDiffViewerApi {
       const oldHeight = oldRow.offsetHeight;
       const newHeight = newRow.offsetHeight;
       const maxHeight = Math.max(oldHeight, newHeight, 0);
+      
+      // Set minimum height for both rows
       oldRow.style.minHeight = `${maxHeight}px`;
       newRow.style.minHeight = `${maxHeight}px`;
+
+      // Handle placeholder height matching
+      const oldPlaceholder = oldRow.querySelector<HTMLElement>(`.${this.prefix}-placeholder`);
+      const newPlaceholder = newRow.querySelector<HTMLElement>(`.${this.prefix}-placeholder`);
+      
+      if (oldPlaceholder && newRow.offsetHeight > 0) {
+        oldPlaceholder.style.minHeight = `${newRow.offsetHeight}px`;
+      }
+      if (newPlaceholder && oldRow.offsetHeight > 0) {
+        newPlaceholder.style.minHeight = `${oldRow.offsetHeight}px`;
+      }
     };
 
     if (typeof ResizeObserver !== 'undefined') {
