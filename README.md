@@ -8,7 +8,7 @@ Rendered HTML visual diff viewer.
 
 - 左右双栏渲染视图
 - 新增、删除、修改高亮
-- 行内文本差异
+- **行内文本差异（支持词级和字符级）**
 - 属性变更识别
 - 差异导航
 - 同步滚动
@@ -129,6 +129,7 @@ interface HtmlVisualDiffRenderOptions {
   matchThreshold?: number;
   textModifyThreshold?: number;
   inlineTextDiff?: boolean;
+  textDiffGranularity?: 'char' | 'word';
   ignoreAttributes?: string[];
   ignoreTags?: string[];
   compareAttributes?: boolean;
@@ -150,6 +151,28 @@ interface HtmlVisualDiffRenderOptions {
     showPlaceholders?: boolean;
   };
 }
+```
+
+### 参数详解
+
+- **textDiffGranularity**: `'char' | 'word'` - 行内文本差异粒度。默认为 `'word'`
+  - `'word'`: 按词级进行对比（推荐），能更好地显示文本变化
+  - `'char'`: 按字符级进行对比
+  
+```ts
+// 词级对比示例（默认）
+createHtmlVisualDiffViewer({
+  oldHtml: '<p>The quick brown fox</p>',
+  newHtml: '<p>The slow brown fox</p>',
+  textDiffGranularity: 'word' // 高亮整个 'quick' -> 'slow'
+});
+
+// 字符级对比示例
+createHtmlVisualDiffViewer({
+  oldHtml: '<p>Hello</p>',
+  newHtml: '<p>Hallo</p>',
+  textDiffGranularity: 'char' // 高亮单个字符的变化
+});
 ```
 
 ## 本地开发

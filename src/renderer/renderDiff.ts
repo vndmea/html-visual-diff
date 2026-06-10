@@ -40,7 +40,7 @@ function buildTextPair(oldNode: Node, newNode: Node, options: NormalizedDiffOpti
   }
 
   if (options.inlineTextDiff) {
-    const diff = inlineTextDiff(oldText, newText, ctx.prefix);
+    const diff = inlineTextDiff(oldText, newText, ctx.prefix, options.textDiffGranularity);
     oldSpan.innerHTML = diff.oldHtml;
     newSpan.innerHTML = diff.newHtml;
   } else {
@@ -72,7 +72,7 @@ function buildElementPair(oldNode: Element, newNode: Element, options: Normalize
     const oldText = nodeText(oldNode);
     const newText = nodeText(newNode);
     if (options.inlineTextDiff) {
-      const diff = inlineTextDiff(oldText, newText, ctx.prefix);
+      const diff = inlineTextDiff(oldText, newText, ctx.prefix, options.textDiffGranularity);
       oldEl.innerHTML = diff.oldHtml;
       newEl.innerHTML = diff.newHtml;
     } else {

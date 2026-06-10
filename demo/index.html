@@ -10,6 +10,13 @@
   </head>
   <body>
     <h1>HTML Visual Diff Demo</h1>
+    <div style="margin-bottom: 14px;">
+      <label for="textDiffGranularity">Text Diff Granularity:</label>
+      <select id="textDiffGranularity" style="padding: 6px 10px; border-radius: 4px; border: 1px solid #d1d5db;">
+        <option value="word">Word Level (Default)</option>
+        <option value="char">Character Level</option>
+      </select>
+    </div>
     <div class="editor"><textarea id="oldHtml"></textarea><textarea id="newHtml"></textarea></div>
     <button id="compare">Compare</button>
     <div id="viewer"></div>

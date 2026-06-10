@@ -4,6 +4,7 @@ import '../src/style.css';
 const oldHtml = document.querySelector<HTMLTextAreaElement>('#oldHtml')!;
 const newHtml = document.querySelector<HTMLTextAreaElement>('#newHtml')!;
 const compare = document.querySelector<HTMLButtonElement>('#compare')!;
+const granularitySelect = document.querySelector<HTMLSelectElement>('#textDiffGranularity')!;
 
 oldHtml.value = `<article class="topic">
   <h1>Gardenia</h1>
@@ -20,8 +21,18 @@ newHtml.value = `<article class="topic updated">
 
 function render(){
   createHtmlVisualDiffViewer({
-    el:'#viewer',oldHtml:oldHtml.value,newHtml:newHtml.value,matchThreshold:0.58,inlineTextDiff:true,compareAttributes:true,syncScroll:true,ignoreAttributes:['data-v-app'],
-    theme:{oldPaneTitle:'旧 HTML',newPaneTitle:'新 HTML',showHeader:true,showSummary:true,showChangeList:true,showPlaceholders:true}
+    el:'#viewer',
+    oldHtml:oldHtml.value,
+    newHtml:newHtml.value,
+    matchThreshold:0.58,
+    inlineTextDiff:true,
+    textDiffGranularity: (granularitySelect.value as 'word' | 'char') || 'word',
+    compareAttributes:true,
+    syncScroll:true,
+    ignoreAttributes:['data-v-app'],
+    theme:{oldPaneTitle:'旧 HTML',newPaneTitle:'新 HTML',showPlaceholders:true}
   });
 }
-compare.addEventListener('click',render);render();
+compare.addEventListener('click',render);
+granularitySelect?.addEventListener('change',render);
+render();

@@ -29,4 +29,59 @@ describe('HtmlVisualDiffViewer', () => {
     const api = createHtmlVisualDiffViewer({el:'#app',oldHtml:'<p data-temp="1">A</p>',newHtml:'<p data-temp="2">A</p>',ignoreAttributes:['data-temp']});
     expect(api.changes.some((item) => item.label.includes('属性'))).toBe(false);
   });
+
+  describe('Word-level text diff', () => {
+    it('uses word-level granularity by default', () => {
+      document.body.innerHTML = '<div id="app"></div>';
+      const api = createHtmlVisualDiffViewer({
+        el: '#app',
+        oldHtml: '<p>The quick brown fox</p>',
+        newHtml: '<p>The slow brown fox</p>',
+        inlineTextDiff: true
+      });
+      const oldPane = api.oldPane.textContent;
+      const newPane = api.newPane.textContent;
+      expect(oldPane).toContain('quick');
+      expect(newPane).toContain('slow');
+    });
+
+    it('preserves whitespace in word-level diff', () => {
+      document.body.innerHTML = '<div id="app"></div>';
+      const api = createHtmlVisualDiffViewer({
+        el: '#app',
+        oldHtml: '<p>Hello world</p>',
+        newHtml: '<p>Hello beautiful world</p>',
+        inlineTextDiff: true,
+        textDiffGranularity: 'word'
+      });
+      const changeSpans = api.newPane.querySelectorAll('.hvd-inline-insert');
+      expect(changeSpans.length).toBeGreaterThan(0);
+    });
+
+    it('can switch to char-level granularity', () => {
+      document.body.innerHTML = '<div id="app"></div>';
+      const api = createHtmlVisualDiffViewer({
+        el: '#app',
+        oldHtml: '<p>Hello</p>',
+        newHtml: '<p>Hallo</p>',
+        inlineTextDiff: true,
+        textDiffGranularity: 'char'
+      });
+      const changeSpans = api.newPane.querySelectorAll('.hvd-inline-insert, .hvd-inline-delete');
+      expect(changeSpans.length).toBeGreaterThan(0);
+    });
+
+    it('handles Chinese text with word-level diff', () => {
+      document.body.innerHTML = '<div id="app"></div>';
+      const api = createHtmlVisualDiffViewer({
+        el: '#app',
+        oldHtml: '<p>这是一个测试</p>',
+        newHtml: '<p>这是一个新的测试</p>',
+        inlineTextDiff: true,
+        textDiffGranularity: 'word'
+      });
+      const changes = api.changes.filter(c => c.type === 'modify');
+      expect(changes.length).toBeGreaterThan(0);
+    });
+  });
 });
