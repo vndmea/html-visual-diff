@@ -43,17 +43,26 @@ export class HtmlVisualDiffViewer implements HtmlVisualDiffViewerApi {
     const ctx = { prefix: this.prefix, changes: this.changes, nextId: () => `${this.prefix}-change-${++this.seq}` };
 
     for (const pair of pairs) {
+      const oldRow = document.createElement('div');
+      oldRow.className = `${this.prefix}-row`;
+      const newRow = document.createElement('div');
+      newRow.className = `${this.prefix}-row`;
+
       if (pair.type === 'pair' && pair.oldNode && pair.newNode) {
         const built = buildPair(pair.oldNode, pair.newNode, this.normalized, ctx);
-        shell.oldContent.appendChild(built.oldEl);
-        shell.newContent.appendChild(built.newEl);
+        oldRow.appendChild(built.oldEl);
+        newRow.appendChild(built.newEl);
       } else if (pair.type === 'delete' && pair.oldNode) {
-        shell.oldContent.appendChild(buildInsertedOrDeleted(pair.oldNode, 'delete', this.normalized, ctx));
-        shell.newContent.appendChild(createPlaceholder(this.prefix, this.normalized));
+        oldRow.appendChild(buildInsertedOrDeleted(pair.oldNode, 'delete', this.normalized, ctx));
+        newRow.appendChild(createPlaceholder(this.prefix, this.normalized));
       } else if (pair.type === 'insert' && pair.newNode) {
-        shell.oldContent.appendChild(createPlaceholder(this.prefix, this.normalized));
-        shell.newContent.appendChild(buildInsertedOrDeleted(pair.newNode, 'insert', this.normalized, ctx));
+        oldRow.appendChild(createPlaceholder(this.prefix, this.normalized));
+        newRow.appendChild(buildInsertedOrDeleted(pair.newNode, 'insert', this.normalized, ctx));
       }
+
+      shell.oldContent.appendChild(oldRow);
+      shell.newContent.appendChild(newRow);
+      this.syncRowHeights(oldRow, newRow);
     }
 
     this.mountEl.innerHTML = '';
@@ -107,6 +116,29 @@ export class HtmlVisualDiffViewer implements HtmlVisualDiffViewerApi {
     newPane.append(newContent);
     layout.append(oldPane, newPane);
     return { oldContent, newContent };
+  }
+
+  private syncRowHeights(oldRow: HTMLElement, newRow: HTMLElement): void {
+    const sync = () => {
+      const oldHeight = oldRow.offsetHeight;
+      const newHeight = newRow.offsetHeight;
+      const maxHeight = Math.max(oldHeight, newHeight, 0);
+      oldRow.style.minHeight = `${maxHeight}px`;
+      newRow.style.minHeight = `${maxHeight}px`;
+    };
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(sync);
+      observer.observe(oldRow);
+      observer.observe(newRow);
+      this.disposers.push(() => observer.disconnect());
+    }
+
+    if (typeof requestAnimationFrame !== 'undefined') {
+      requestAnimationFrame(sync);
+    } else {
+      setTimeout(sync, 0);
+    }
   }
 
   private bindSyncScroll(source: HTMLElement, target: HTMLElement): void {
