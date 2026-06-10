@@ -123,20 +123,23 @@ export class HtmlVisualDiffViewer implements HtmlVisualDiffViewerApi {
       const oldHeight = oldRow.offsetHeight;
       const newHeight = newRow.offsetHeight;
       const maxHeight = Math.max(oldHeight, newHeight, 0);
-      
       // Set minimum height for both rows
       oldRow.style.minHeight = `${maxHeight}px`;
       newRow.style.minHeight = `${maxHeight}px`;
 
-      // Handle placeholder height matching
+      // Handle placeholder height matching — prefer natural content height
       const oldPlaceholder = oldRow.querySelector<HTMLElement>(`.${this.prefix}-placeholder`);
       const newPlaceholder = newRow.querySelector<HTMLElement>(`.${this.prefix}-placeholder`);
-      
-      if (oldPlaceholder && newRow.offsetHeight > 0) {
-        oldPlaceholder.style.minHeight = `${newRow.offsetHeight}px`;
+
+      if (oldPlaceholder) {
+        // measure natural height of newRow content ignoring external viewer CSS
+        const targetH = this.measureNaturalHeight(newRow, this.newPane.clientWidth) || newRow.offsetHeight || maxHeight;
+        oldPlaceholder.style.minHeight = `${targetH}px`;
       }
-      if (newPlaceholder && oldRow.offsetHeight > 0) {
-        newPlaceholder.style.minHeight = `${oldRow.offsetHeight}px`;
+
+      if (newPlaceholder) {
+        const targetH = this.measureNaturalHeight(oldRow, this.oldPane.clientWidth) || oldRow.offsetHeight || maxHeight;
+        newPlaceholder.style.minHeight = `${targetH}px`;
       }
     };
 
@@ -151,6 +154,26 @@ export class HtmlVisualDiffViewer implements HtmlVisualDiffViewerApi {
       requestAnimationFrame(sync);
     } else {
       setTimeout(sync, 0);
+    }
+  }
+
+  private measureNaturalHeight(el: HTMLElement, width?: number): number {
+    try {
+      const clone = el.cloneNode(true) as HTMLElement;
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.visibility = 'hidden';
+      container.style.left = '-99999px';
+      container.style.top = '0';
+      container.style.boxSizing = 'border-box';
+      if (width) container.style.width = `${width}px`;
+      container.appendChild(clone);
+      document.body.appendChild(container);
+      const h = container.offsetHeight;
+      document.body.removeChild(container);
+      return h;
+    } catch (e) {
+      return 0;
     }
   }
 
