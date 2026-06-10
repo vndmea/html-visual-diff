@@ -120,27 +120,26 @@ export class HtmlVisualDiffViewer implements HtmlVisualDiffViewerApi {
 
   private syncRowHeights(oldRow: HTMLElement, newRow: HTMLElement): void {
     const sync = () => {
-      const oldHeight = oldRow.offsetHeight;
-      const newHeight = newRow.offsetHeight;
-      const maxHeight = Math.max(oldHeight, newHeight, 0);
-      // Set minimum height for both rows
-      oldRow.style.minHeight = `${maxHeight}px`;
-      newRow.style.minHeight = `${maxHeight}px`;
+      // Measure natural heights first, with placeholders zeroed
+      const natOld = this.measureHeightWithoutPlaceholders(oldRow) || oldRow.offsetHeight || 0;
+      const natNew = this.measureHeightWithoutPlaceholders(newRow) || newRow.offsetHeight || 0;
+      const maxNat = Math.max(natOld, natNew, 0);
 
-      // Handle placeholder height matching — prefer natural content height
-      const oldPlaceholder = oldRow.querySelector<HTMLElement>(`.${this.prefix}-placeholder`);
-      const newPlaceholder = newRow.querySelector<HTMLElement>(`.${this.prefix}-placeholder`);
+      // Set minimum height for both rows based on natural max.
+      // Avoid redundant style writes to prevent reflow loops.
+      const newMin = `${maxNat}px`;
+      if (oldRow.style.minHeight !== newMin) oldRow.style.minHeight = newMin;
+      if (newRow.style.minHeight !== newMin) newRow.style.minHeight = newMin;
 
-      if (oldPlaceholder) {
-        // measure natural height of newRow content ignoring external viewer CSS
-        const targetH = this.measureNaturalHeight(newRow, this.newPane.clientWidth) || newRow.offsetHeight || maxHeight;
-        oldPlaceholder.style.minHeight = `${targetH}px`;
-      }
-
-      if (newPlaceholder) {
-        const targetH = this.measureNaturalHeight(oldRow, this.oldPane.clientWidth) || oldRow.offsetHeight || maxHeight;
-        newPlaceholder.style.minHeight = `${targetH}px`;
-      }
+      // Ensure placeholders do NOT carry inline min-height (avoid feedback loops).
+      const clearPlaceholders = (row: HTMLElement) => {
+        const phs = row.querySelectorAll<HTMLElement>(`.${this.prefix}-placeholder`);
+        phs.forEach((ph) => {
+          if (ph.style && ph.style.minHeight) ph.style.minHeight = '';
+        });
+      };
+      clearPlaceholders(oldRow);
+      clearPlaceholders(newRow);
     };
 
     if (typeof ResizeObserver !== 'undefined') {
@@ -167,6 +166,20 @@ export class HtmlVisualDiffViewer implements HtmlVisualDiffViewerApi {
       container.style.top = '0';
       container.style.boxSizing = 'border-box';
       if (width) container.style.width = `${width}px`;
+      // Remove placeholder nodes and any inline height/min-height/max-height
+      // styles from the clone to avoid measuring propagated min-heights
+      // which can cause a feedback loop of increasing heights.
+      const placeholders = Array.from(clone.querySelectorAll(`.${this.prefix}-placeholder`));
+      for (const ph of placeholders) ph.remove();
+
+      const all = [clone, ...Array.from(clone.querySelectorAll('*'))] as HTMLElement[];
+      for (const node of all) {
+        if (node.style) {
+          node.style.minHeight = '';
+          node.style.height = '';
+          node.style.maxHeight = '';
+        }
+      }
       container.appendChild(clone);
       document.body.appendChild(container);
       const h = container.offsetHeight;
@@ -174,6 +187,24 @@ export class HtmlVisualDiffViewer implements HtmlVisualDiffViewerApi {
       return h;
     } catch (e) {
       return 0;
+    }
+  }
+
+  private measureHeightWithoutPlaceholders(row: HTMLElement): number {
+    const placeholders = Array.from(row.querySelectorAll<HTMLElement>(`.${this.prefix}-placeholder`));
+    const prevs: string[] = [];
+    try {
+      for (const ph of placeholders) {
+        prevs.push(ph.style.minHeight || '');
+        ph.style.minHeight = '0px';
+      }
+      // Force layout
+      const h = Math.ceil(row.getBoundingClientRect().height);
+      return h;
+    } finally {
+      placeholders.forEach((ph, i) => {
+        ph.style.minHeight = prevs[i] || '';
+      });
     }
   }
 
