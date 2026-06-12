@@ -149,4 +149,35 @@ describe('diffRenderTrees', () => {
       { start: 7, end: 8 }
     ]);
   });
+
+  it('uses word-oriented segments for English phrase changes', () => {
+    const oldRoot = node({
+      id: 'root-old',
+      tagName: 'body',
+      children: [
+        node({
+          id: 'text-old',
+          tagName: 'p',
+          text: 'The quick brown fox'
+        })
+      ]
+    });
+
+    const newRoot = node({
+      id: 'root-new',
+      tagName: 'body',
+      children: [
+        node({
+          id: 'text-new',
+          tagName: 'p',
+          text: 'The slow brown fox'
+        })
+      ]
+    });
+
+    const result = diffRenderTrees(oldRoot, newRoot);
+    const textChange = result.changes.find((change) => change.type === 'text-changed');
+    expect(textChange?.oldTextSegments).toEqual([{ start: 4, end: 9 }]);
+    expect(textChange?.newTextSegments).toEqual([{ start: 4, end: 8 }]);
+  });
 });

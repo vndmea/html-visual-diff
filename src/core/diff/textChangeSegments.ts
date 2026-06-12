@@ -3,96 +3,158 @@ export interface TextChangeSegment {
   end: number;
 }
 
-interface DiffOp {
-  type: 'equal' | 'delete' | 'insert';
-  oldChar?: string;
-  newChar?: string;
+interface Token {
+  value: string;
+  start: number;
+  end: number;
 }
 
-function buildLcsTable(oldChars: string[], newChars: string[]): number[][] {
-  const m = oldChars.length;
-  const n = newChars.length;
-  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+function tokenizeWords(text: string): Token[] {
+  const tokens: Token[] = [];
+  let current = '';
+  let start = 0;
 
-  for (let i = m - 1; i >= 0; i -= 1) {
-    for (let j = n - 1; j >= 0; j -= 1) {
-      dp[i][j] = oldChars[i] === newChars[j]
-        ? dp[i + 1][j + 1] + 1
-        : Math.max(dp[i + 1][j], dp[i][j + 1]);
-    }
-  }
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const isWhitespace = /\s/.test(char);
+    const currentIsWhitespace = current ? /\s/.test(current[0]) : null;
 
-  return dp;
-}
-
-function buildDiffOps(oldText: string, newText: string): DiffOp[] {
-  const oldChars = Array.from(oldText);
-  const newChars = Array.from(newText);
-  const dp = buildLcsTable(oldChars, newChars);
-  const ops: DiffOp[] = [];
-
-  let i = 0;
-  let j = 0;
-
-  while (i < oldChars.length && j < newChars.length) {
-    if (oldChars[i] === newChars[j]) {
-      ops.push({ type: 'equal', oldChar: oldChars[i], newChar: newChars[j] });
-      i += 1;
-      j += 1;
-    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
-      ops.push({ type: 'delete', oldChar: oldChars[i] });
-      i += 1;
-    } else {
-      ops.push({ type: 'insert', newChar: newChars[j] });
-      j += 1;
-    }
-  }
-
-  while (i < oldChars.length) {
-    ops.push({ type: 'delete', oldChar: oldChars[i] });
-    i += 1;
-  }
-
-  while (j < newChars.length) {
-    ops.push({ type: 'insert', newChar: newChars[j] });
-    j += 1;
-  }
-
-  return ops;
-}
-
-function collectSegments(ops: DiffOp[], side: 'old' | 'new'): TextChangeSegment[] {
-  const segments: TextChangeSegment[] = [];
-  let cursor = 0;
-  let currentStart: number | null = null;
-
-  const closeSegment = () => {
-    if (currentStart === null) return;
-    if (currentStart !== cursor) {
-      segments.push({ start: currentStart, end: cursor });
-    }
-    currentStart = null;
-  };
-
-  for (const op of ops) {
-    if (op.type === 'equal') {
-      closeSegment();
-      cursor += 1;
+    if (!current) {
+      current = char;
+      start = index;
       continue;
     }
 
-    const touchesSide = side === 'old' ? op.type === 'delete' : op.type === 'insert';
-    if (touchesSide && currentStart === null) {
-      currentStart = cursor;
+    if (currentIsWhitespace === isWhitespace) {
+      current += char;
+      continue;
     }
 
-    if (side === 'old' && op.type === 'delete') {
-      cursor += 1;
+    tokens.push({ value: current, start, end: index });
+    current = char;
+    start = index;
+  }
+
+  if (current) {
+    tokens.push({ value: current, start, end: text.length });
+  }
+
+  return tokens;
+}
+
+function shouldUseWordGranularity(oldText: string, newText: string): boolean {
+  const sample = `${oldText} ${newText}`;
+  const letters = (sample.match(/[A-Za-z]/g) || []).length;
+  const cjk = (sample.match(/[\u3400-\u9fff]/g) || []).length;
+  return (/\s/.test(oldText) || /\s/.test(newText)) && letters >= cjk;
+}
+
+function tokenizeCharacters(text: string): Token[] {
+  const tokens: Token[] = [];
+  let offset = 0;
+
+  for (const value of text) {
+    tokens.push({
+      value,
+      start: offset,
+      end: offset + value.length
+    });
+    offset += value.length;
+  }
+
+  return tokens;
+}
+
+function collectMatchedTokenIndexes(oldValues: string[], newValues: string[]): {
+  oldMatched: Set<number>;
+  newMatched: Set<number>;
+} {
+  const oldMatched = new Set<number>();
+  const newMatched = new Set<number>();
+
+  const markCommonBlocks = (
+    oldStart: number,
+    oldEnd: number,
+    newStart: number,
+    newEnd: number
+  ) => {
+    let bestOldStart = -1;
+    let bestNewStart = -1;
+    let bestLength = 0;
+    const oldLength = oldEnd - oldStart;
+    const newLength = newEnd - newStart;
+    const dp = Array.from({ length: oldLength + 1 }, () =>
+      Array.from({ length: newLength + 1 }, () => 0)
+    );
+
+    for (let oldOffset = 1; oldOffset <= oldLength; oldOffset += 1) {
+      for (let newOffset = 1; newOffset <= newLength; newOffset += 1) {
+        const oldIndex = oldStart + oldOffset - 1;
+        const newIndex = newStart + newOffset - 1;
+
+        if (oldValues[oldIndex] !== newValues[newIndex]) {
+          continue;
+        }
+
+        dp[oldOffset][newOffset] = dp[oldOffset - 1][newOffset - 1] + 1;
+        if (dp[oldOffset][newOffset] > bestLength) {
+          bestLength = dp[oldOffset][newOffset];
+          bestOldStart = oldIndex - bestLength + 1;
+          bestNewStart = newIndex - bestLength + 1;
+        }
+      }
     }
 
-    if (side === 'new' && op.type === 'insert') {
-      cursor += 1;
+    if (bestLength === 0 || bestOldStart < 0 || bestNewStart < 0) {
+      return;
     }
+
+    markCommonBlocks(oldStart, bestOldStart, newStart, bestNewStart);
+
+    for (let index = 0; index < bestLength; index += 1) {
+      oldMatched.add(bestOldStart + index);
+      newMatched.add(bestNewStart + index);
+    }
+
+    markCommonBlocks(
+      bestOldStart + bestLength,
+      oldEnd,
+      bestNewStart + bestLength,
+      newEnd
+    );
+  };
+
+  markCommonBlocks(0, oldValues.length, 0, newValues.length);
+
+  if (oldMatched.size === 0 && newMatched.size === 0) {
+    return { oldMatched, newMatched };
+  }
+
+  return { oldMatched, newMatched };
+}
+
+function collectSegments(tokens: Token[], matchedIndexes: Set<number>): TextChangeSegment[] {
+  const segments: TextChangeSegment[] = [];
+  let currentStart: number | null = null;
+  let currentEnd = 0;
+
+  const closeSegment = () => {
+    if (currentStart === null) return;
+    segments.push({ start: currentStart, end: currentEnd });
+    currentStart = null;
+  };
+
+  for (const [index, token] of tokens.entries()) {
+    if (matchedIndexes.has(index)) {
+      closeSegment();
+      continue;
+    }
+
+    if (currentStart === null) {
+      currentStart = token.start;
+    }
+
+    currentEnd = token.end;
   }
 
   closeSegment();
@@ -107,9 +169,29 @@ export function getTextChangeSegments(oldText: string, newText: string): {
     return { oldSegments: [], newSegments: [] };
   }
 
-  const ops = buildDiffOps(oldText, newText);
+  if (shouldUseWordGranularity(oldText, newText)) {
+    const oldTokens = tokenizeWords(oldText);
+    const newTokens = tokenizeWords(newText);
+    const { oldMatched, newMatched } = collectMatchedTokenIndexes(
+      oldTokens.map((token) => token.value),
+      newTokens.map((token) => token.value)
+    );
+
+    return {
+      oldSegments: collectSegments(oldTokens, oldMatched),
+      newSegments: collectSegments(newTokens, newMatched)
+    };
+  }
+
+  const oldChars = tokenizeCharacters(oldText);
+  const newChars = tokenizeCharacters(newText);
+  const { oldMatched, newMatched } = collectMatchedTokenIndexes(
+    oldChars.map((token) => token.value),
+    newChars.map((token) => token.value)
+  );
+
   return {
-    oldSegments: collectSegments(ops, 'old'),
-    newSegments: collectSegments(ops, 'new')
+    oldSegments: collectSegments(oldChars, oldMatched),
+    newSegments: collectSegments(newChars, newMatched)
   };
 }
