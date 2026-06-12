@@ -75,4 +75,44 @@ describe('drawOverlay', () => {
     expect(box.style.width).toBe('60px');
     expect(box.style.height).toBe('18px');
   });
+
+  it('renders multiple highlight boxes for multiline text anchors', () => {
+    document.body.innerHTML = `
+      <div id="content">
+        <div data-hvd-node-id="node-3">
+          <span data-hvd-text-node-id="node-3-text">Wrapped text</span>
+        </div>
+      </div>
+      <div id="overlay"></div>
+    `;
+
+    const content = document.querySelector<HTMLElement>('#content')!;
+    const overlay = document.querySelector<HTMLElement>('#overlay')!;
+    const textTarget = content.querySelector<HTMLElement>('[data-hvd-text-node-id="node-3-text"]')!;
+
+    overlay.getBoundingClientRect = () => rect(0, 0, 200, 200);
+    const originalCreateRange = document.createRange.bind(document);
+    document.createRange = () => ({
+      ...originalCreateRange(),
+      selectNodeContents: () => undefined,
+      getClientRects: () => [
+        rect(10, 20, 80, 16),
+        rect(10, 40, 44, 16)
+      ] as unknown as DOMRectList
+    }) as Range;
+
+    const changes: RenderChange[] = [
+      { type: 'text-changed', newNodeId: 'node-3' }
+    ];
+
+    drawOverlay(overlay, content, changes, 'new');
+
+    const boxes = overlay.querySelectorAll('div');
+    expect(boxes).toHaveLength(2);
+    expect((boxes[0] as HTMLDivElement).style.top).toBe('20px');
+    expect((boxes[1] as HTMLDivElement).style.top).toBe('40px');
+
+    document.createRange = originalCreateRange;
+    void textTarget;
+  });
 });

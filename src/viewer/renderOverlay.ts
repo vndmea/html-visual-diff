@@ -5,6 +5,13 @@ interface OverlayEntry {
   className: string;
 }
 
+interface OverlayRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
 function getOverlayClass(type: RenderChange['type']): string {
   if (type === 'inserted') return 'hvd-highlight-inserted';
   if (type === 'deleted') return 'hvd-highlight-deleted';
@@ -26,18 +33,50 @@ function resolveTarget(contentRoot: HTMLElement, nodeId: string, className: stri
   return contentRoot.querySelector<HTMLElement>(`[data-hvd-node-id="${nodeId}"]`);
 }
 
+function collectHighlightRects(target: HTMLElement): OverlayRect[] {
+  if (target.hasAttribute('data-hvd-text-node-id') && target.firstChild?.nodeType === Node.TEXT_NODE) {
+    try {
+      const range = document.createRange();
+      range.selectNodeContents(target.firstChild);
+      const rects = Array.from(range.getClientRects())
+        .filter((rect) => rect.width > 0 && rect.height > 0)
+        .map((rect) => ({
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height
+        }));
+
+      if (rects.length > 0) return rects;
+    } catch {
+      // Fall back to a single bounding box below.
+    }
+  }
+
+  const rect = target.getBoundingClientRect();
+  return [{
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height
+  }];
+}
+
 function placeHighlight(overlay: HTMLElement, contentRoot: HTMLElement, nodeId: string, className: string): void {
   const target = resolveTarget(contentRoot, nodeId, className);
   if (!target) return;
   const overlayRect = overlay.getBoundingClientRect();
-  const rect = target.getBoundingClientRect();
-  const box = document.createElement('div');
-  box.className = className;
-  box.style.left = `${rect.left - overlayRect.left}px`;
-  box.style.top = `${rect.top - overlayRect.top}px`;
-  box.style.width = `${Math.max(rect.width, 1)}px`;
-  box.style.height = `${Math.max(rect.height, 1)}px`;
-  overlay.appendChild(box);
+  const rects = collectHighlightRects(target);
+
+  for (const rect of rects) {
+    const box = document.createElement('div');
+    box.className = className;
+    box.style.left = `${rect.left - overlayRect.left}px`;
+    box.style.top = `${rect.top - overlayRect.top}px`;
+    box.style.width = `${Math.max(rect.width, 1)}px`;
+    box.style.height = `${Math.max(rect.height, 1)}px`;
+    overlay.appendChild(box);
+  }
 }
 
 function collectOverlayEntries(changes: RenderChange[], side: 'old' | 'new'): OverlayEntry[] {
