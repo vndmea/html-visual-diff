@@ -49,4 +49,10 @@ describe('createHtmlVisualDiff', () => {
     oldPane.dispatchEvent(new Event('scroll'));
     expect(newPane.scrollTop).toBe(0);
   });
+
+  it('only exposes createHtmlVisualDiff on the browser global', () => {
+    expect(window.HtmlVisualDiff).toBeTruthy();
+    expect(window.HtmlVisualDiff?.createHtmlVisualDiff).toBe(createHtmlVisualDiff);
+    expect('TwoPaneViewer' in (window.HtmlVisualDiff ?? {})).toBe(false);
+  });
 });

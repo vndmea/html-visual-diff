@@ -41,6 +41,8 @@ export interface HtmlVisualDiffViewer {
   refresh(): Promise<void>;
 }
 
+// Legacy internal types kept for compatibility with older modules that still
+// live in the repository but are no longer part of the primary public API.
 export interface ChangeRecord {
   id: string;
   type: Exclude<DiffType, 'equal' | 'placeholder'>;
