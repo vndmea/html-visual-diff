@@ -111,4 +111,42 @@ describe('diffRenderTrees', () => {
     expect(textChange?.oldTextSegments?.[0]).toEqual({ start: 6, end: 9 });
     expect(textChange?.newTextSegments?.[0]).toEqual({ start: 6, end: 9 });
   });
+
+  it('captures multiple separated text change segments', () => {
+    const oldRoot = node({
+      id: 'root-old',
+      tagName: 'body',
+      children: [
+        node({
+          id: 'text-old',
+          tagName: 'p',
+          text: 'abcXdefYghi'
+        })
+      ]
+    });
+
+    const newRoot = node({
+      id: 'root-new',
+      tagName: 'body',
+      children: [
+        node({
+          id: 'text-new',
+          tagName: 'p',
+          text: 'abcMdefNghi'
+        })
+      ]
+    });
+
+    const result = diffRenderTrees(oldRoot, newRoot);
+    const textChange = result.changes.find((change) => change.type === 'text-changed');
+
+    expect(textChange?.oldTextSegments).toEqual([
+      { start: 3, end: 4 },
+      { start: 7, end: 8 }
+    ]);
+    expect(textChange?.newTextSegments).toEqual([
+      { start: 3, end: 4 },
+      { start: 7, end: 8 }
+    ]);
+  });
 });
