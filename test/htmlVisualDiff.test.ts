@@ -16,6 +16,7 @@ describe('createHtmlVisualDiff', () => {
     expect(viewer.root.querySelector('.hvd-viewer')).toBeNull();
     expect(document.querySelector('.hvd-pane-old')).toBeTruthy();
     expect(document.querySelector('.hvd-pane-new')).toBeTruthy();
+    expect(document.querySelector('.hvd-overlay')).toBeTruthy();
     expect(document.querySelector('.hvd-header')).toBeNull();
     expect(document.querySelector('.hvd-summary')).toBeNull();
     expect(document.querySelector('.hvd-change-list')).toBeNull();
@@ -40,6 +41,7 @@ describe('createHtmlVisualDiff', () => {
     oldPane.scrollTop = 48;
     oldPane.dispatchEvent(new Event('scroll'));
     expect(newPane.scrollTop).toBe(48);
+    expect(document.querySelectorAll('.hvd-highlight-changed, .hvd-highlight-inserted, .hvd-highlight-deleted').length).toBeGreaterThan(0);
 
     viewer.destroy();
     newPane.scrollTop = 0;

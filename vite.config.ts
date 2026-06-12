@@ -6,6 +6,8 @@ export default defineConfig({
   plugins: [
     dts({
       entryRoot: 'src',
+      include: ['src/**/*.ts'],
+      exclude: ['demo/**/*.ts', 'test/**/*.ts'],
       insertTypesEntry: true,
       rollupTypes: false
     })

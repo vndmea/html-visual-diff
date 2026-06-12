@@ -11,9 +11,21 @@ export interface AlignmentBlock {
   spacerHeight?: number;
 }
 
+function flattenBlockNodes(node: RenderNode): RenderNode[] {
+  const blocks: RenderNode[] = [];
+  for (const child of node.children) {
+    if (isBlockNode(child)) {
+      blocks.push(child);
+      continue;
+    }
+    blocks.push(...flattenBlockNodes(child));
+  }
+  return blocks;
+}
+
 export function createAlignmentBlocks(oldRoot: RenderNode, newRoot: RenderNode): AlignmentBlock[] {
   const blocks: AlignmentBlock[] = [];
-  const pairs = pairChildren(oldRoot.children, newRoot.children);
+  const pairs = pairChildren(flattenBlockNodes(oldRoot), flattenBlockNodes(newRoot));
 
   for (const pair of pairs) {
     const oldNode = isBlockNode(pair.oldNode) ? pair.oldNode : undefined;

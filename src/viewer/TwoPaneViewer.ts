@@ -7,7 +7,7 @@ import { diffRenderTrees } from '../core/diff/diffRenderTrees';
 import { createAlignmentBlocks } from '../core/alignment/createAlignmentBlocks';
 import { insertSpacers } from '../core/alignment/insertSpacers';
 import { renderContent } from './renderContent';
-import { renderOverlay } from './renderOverlay';
+import { bindOverlayUpdates } from './renderOverlay';
 import { syncScroll } from './syncScroll';
 import type { CreateHtmlVisualDiffOptions, HtmlVisualDiffViewer, ResolvedViewerOptions } from '../types';
 
@@ -86,8 +86,8 @@ export class TwoPaneViewer implements HtmlVisualDiffViewer {
         insertSpacers(oldContentRoot, newContentRoot, blocks);
       }
 
-      renderOverlay(oldOverlay, oldContentRoot, diff.changes, 'old');
-      renderOverlay(newOverlay, newContentRoot, diff.changes, 'new');
+      this.disposers.push(bindOverlayUpdates(oldPane, oldOverlay, oldContentRoot, diff.changes, 'old'));
+      this.disposers.push(bindOverlayUpdates(newPane, newOverlay, newContentRoot, diff.changes, 'new'));
 
       if (this.options.syncScroll) {
         this.disposers.push(syncScroll(oldPane, newPane));
