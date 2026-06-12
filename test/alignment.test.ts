@@ -59,4 +59,59 @@ describe('createAlignmentBlocks', () => {
     expect(blocks[0]?.spacerSide).toBe('old');
     expect(blocks[0]?.spacerHeight).toBe(50);
   });
+
+  it('keeps block pairing scoped by parent path when nested groups differ', () => {
+    const oldRoot = node({
+      id: 'old-root',
+      tagName: 'body',
+      children: [
+        node({
+          id: 'wrapper-old',
+          tagName: 'div',
+          path: '/body/wrapper-old',
+          children: [
+            node({ id: 'old-a', tagName: 'section', path: '/body/wrapper-old/section[0]', rect: { x: 0, y: 0, width: 100, height: 40 } })
+          ]
+        }),
+        node({
+          id: 'footer-old',
+          tagName: 'div',
+          path: '/body/footer-old',
+          children: [
+            node({ id: 'old-b', tagName: 'section', path: '/body/footer-old/section[0]', rect: { x: 0, y: 50, width: 100, height: 20 } })
+          ]
+        })
+      ]
+    });
+
+    const newRoot = node({
+      id: 'new-root',
+      tagName: 'body',
+      children: [
+        node({
+          id: 'wrapper-new',
+          tagName: 'div',
+          path: '/body/wrapper-old',
+          children: [
+            node({ id: 'new-a', tagName: 'section', path: '/body/wrapper-old/section[0]', rect: { x: 0, y: 0, width: 100, height: 60 } })
+          ]
+        }),
+        node({
+          id: 'footer-new',
+          tagName: 'div',
+          path: '/body/footer-old',
+          children: [
+            node({ id: 'new-b', tagName: 'section', path: '/body/footer-old/section[0]', rect: { x: 0, y: 70, width: 100, height: 20 } })
+          ]
+        })
+      ]
+    });
+
+    const blocks = createAlignmentBlocks(oldRoot, newRoot);
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0]?.oldNodeId).toBe('old-a');
+    expect(blocks[0]?.newNodeId).toBe('new-a');
+    expect(blocks[1]?.oldNodeId).toBe('old-b');
+    expect(blocks[1]?.newNodeId).toBe('new-b');
+  });
 });

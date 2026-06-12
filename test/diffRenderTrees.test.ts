@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { diffRenderTrees } from '../src/core/diff/diffRenderTrees';
+import { pairChildren } from '../src/core/diff/matchRenderNodes';
 import type { RenderNode } from '../src/core/snapshot/types';
 
 function node(partial: Partial<RenderNode> & Pick<RenderNode, 'id' | 'tagName'>): RenderNode {
@@ -58,5 +59,25 @@ describe('diffRenderTrees', () => {
     expect(types).toContain('style-changed');
     expect(types).toContain('size-changed');
     expect(types).toContain('inserted');
+  });
+
+  it('prefers the best local candidate when similar siblings are shifted by an insertion', () => {
+    const oldChildren = [
+      node({ id: 'old-1', tagName: 'section', text: 'Alpha card', attributes: { class: 'card primary' } }),
+      node({ id: 'old-2', tagName: 'section', text: 'Beta card', attributes: { class: 'card secondary' } })
+    ];
+
+    const newChildren = [
+      node({ id: 'new-x', tagName: 'section', text: 'Inserted card', attributes: { class: 'card tertiary' } }),
+      node({ id: 'new-1', tagName: 'section', text: 'Alpha card updated', attributes: { class: 'card primary' } }),
+      node({ id: 'new-2', tagName: 'section', text: 'Beta card', attributes: { class: 'card secondary' } })
+    ];
+
+    const pairs = pairChildren(oldChildren, newChildren);
+    expect(pairs[0]?.newNode?.id).toBe('new-x');
+    expect(pairs[1]?.oldNode?.id).toBe('old-1');
+    expect(pairs[1]?.newNode?.id).toBe('new-1');
+    expect(pairs[2]?.oldNode?.id).toBe('old-2');
+    expect(pairs[2]?.newNode?.id).toBe('new-2');
   });
 });

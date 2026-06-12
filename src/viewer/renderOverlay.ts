@@ -1,9 +1,20 @@
 import type { RenderChange } from '../core/diff/types';
 
+interface OverlayEntry {
+  nodeId: string;
+  className: string;
+}
+
 function getOverlayClass(type: RenderChange['type']): string {
   if (type === 'inserted') return 'hvd-highlight-inserted';
   if (type === 'deleted') return 'hvd-highlight-deleted';
   return 'hvd-highlight-changed';
+}
+
+function getOverlayPriority(type: RenderChange['type']): number {
+  if (type === 'inserted' || type === 'deleted') return 3;
+  if (type === 'size-changed' || type === 'layout-changed') return 2;
+  return 1;
 }
 
 function placeHighlight(overlay: HTMLElement, contentRoot: HTMLElement, nodeId: string, className: string): void {
@@ -20,6 +31,29 @@ function placeHighlight(overlay: HTMLElement, contentRoot: HTMLElement, nodeId: 
   overlay.appendChild(box);
 }
 
+function collectOverlayEntries(changes: RenderChange[], side: 'old' | 'new'): OverlayEntry[] {
+  const ranked = new Map<string, { priority: number; className: string }>();
+
+  for (const change of changes) {
+    const nodeId = side === 'old' ? change.oldNodeId : change.newNodeId;
+    if (!nodeId) continue;
+
+    const priority = getOverlayPriority(change.type);
+    const existing = ranked.get(nodeId);
+    if (!existing || priority >= existing.priority) {
+      ranked.set(nodeId, {
+        priority,
+        className: getOverlayClass(change.type)
+      });
+    }
+  }
+
+  return Array.from(ranked.entries()).map(([nodeId, value]) => ({
+    nodeId,
+    className: value.className
+  }));
+}
+
 export function drawOverlay(
   overlay: HTMLElement,
   contentRoot: HTMLElement,
@@ -27,10 +61,8 @@ export function drawOverlay(
   side: 'old' | 'new'
 ): void {
   overlay.innerHTML = '';
-  for (const change of changes) {
-    const className = getOverlayClass(change.type);
-    if (side === 'old' && change.oldNodeId) placeHighlight(overlay, contentRoot, change.oldNodeId, className);
-    if (side === 'new' && change.newNodeId) placeHighlight(overlay, contentRoot, change.newNodeId, className);
+  for (const entry of collectOverlayEntries(changes, side)) {
+    placeHighlight(overlay, contentRoot, entry.nodeId, entry.className);
   }
 }
 

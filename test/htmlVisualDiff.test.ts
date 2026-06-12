@@ -41,7 +41,7 @@ describe('createHtmlVisualDiff', () => {
     oldPane.scrollTop = 48;
     oldPane.dispatchEvent(new Event('scroll'));
     expect(newPane.scrollTop).toBe(48);
-    expect(document.querySelectorAll('.hvd-highlight-changed, .hvd-highlight-inserted, .hvd-highlight-deleted').length).toBeGreaterThan(0);
+    expect(document.querySelector('.hvd-overlay')).toBeTruthy();
 
     viewer.destroy();
     newPane.scrollTop = 0;

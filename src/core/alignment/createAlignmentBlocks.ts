@@ -11,21 +11,33 @@ export interface AlignmentBlock {
   spacerHeight?: number;
 }
 
-function flattenBlockNodes(node: RenderNode): RenderNode[] {
-  const blocks: RenderNode[] = [];
+interface FlatBlockNode {
+  node: RenderNode;
+  parentPath: string;
+}
+
+function flattenBlockNodes(node: RenderNode, parentPath = node.path): FlatBlockNode[] {
+  const blocks: FlatBlockNode[] = [];
   for (const child of node.children) {
-    if (isBlockNode(child)) {
-      blocks.push(child);
+    const hasNestedBlockChildren = child.children.some((grandChild) => isBlockNode(grandChild));
+    if (isBlockNode(child) && !hasNestedBlockChildren) {
+      blocks.push({ node: child, parentPath });
       continue;
     }
-    blocks.push(...flattenBlockNodes(child));
+    blocks.push(...flattenBlockNodes(child, child.path));
   }
   return blocks;
 }
 
-export function createAlignmentBlocks(oldRoot: RenderNode, newRoot: RenderNode): AlignmentBlock[] {
-  const blocks: AlignmentBlock[] = [];
-  const pairs = pairChildren(flattenBlockNodes(oldRoot), flattenBlockNodes(newRoot));
+function appendBlocks(
+  blocks: AlignmentBlock[],
+  oldItems: FlatBlockNode[],
+  newItems: FlatBlockNode[]
+): void {
+  const pairs = pairChildren(
+    oldItems.map((item) => item.node),
+    newItems.map((item) => item.node)
+  );
 
   for (const pair of pairs) {
     const oldNode = isBlockNode(pair.oldNode) ? pair.oldNode : undefined;
@@ -65,6 +77,30 @@ export function createAlignmentBlocks(oldRoot: RenderNode, newRoot: RenderNode):
       spacerSide: diff > 0 ? (oldHeight < newHeight ? 'old' : 'new') : undefined,
       spacerHeight: diff > 0 ? diff : undefined
     });
+  }
+}
+
+export function createAlignmentBlocks(oldRoot: RenderNode, newRoot: RenderNode): AlignmentBlock[] {
+  const blocks: AlignmentBlock[] = [];
+  const oldItems = flattenBlockNodes(oldRoot);
+  const newItems = flattenBlockNodes(newRoot);
+
+  const groups = new Map<string, { old: FlatBlockNode[]; new: FlatBlockNode[] }>();
+
+  for (const item of oldItems) {
+    const group = groups.get(item.parentPath) || { old: [], new: [] };
+    group.old.push(item);
+    groups.set(item.parentPath, group);
+  }
+
+  for (const item of newItems) {
+    const group = groups.get(item.parentPath) || { old: [], new: [] };
+    group.new.push(item);
+    groups.set(item.parentPath, group);
+  }
+
+  for (const { old, new: next } of groups.values()) {
+    appendBlocks(blocks, old, next);
   }
 
   return blocks;
