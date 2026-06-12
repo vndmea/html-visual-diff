@@ -30,6 +30,21 @@ function waitForImages(doc: Document, timeoutMs: number): Promise<void> {
   }), timeoutMs))).then(() => undefined);
 }
 
+function waitForStylesheets(doc: Document, timeoutMs: number): Promise<void> {
+  const stylesheets = Array.from(doc.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'));
+  return Promise.all(stylesheets.map((link) => withTimeout(new Promise<void>((resolve) => {
+    const sheet = link.sheet;
+    if (sheet) {
+      resolve();
+      return;
+    }
+
+    const done = () => resolve();
+    link.addEventListener('load', done, { once: true });
+    link.addEventListener('error', done, { once: true });
+  }), timeoutMs))).then(() => undefined);
+}
+
 export async function waitForRenderReady(
   doc: Document,
   options: WaitForRenderReadyOptions = {}
@@ -45,6 +60,8 @@ export async function waitForRenderReady(
       doc.addEventListener('DOMContentLoaded', () => resolve(), { once: true });
     }), timeoutMs);
   }
+
+  await waitForStylesheets(doc, timeoutMs);
 
   const fontAwareDoc = doc as Document & { fonts?: { ready?: Promise<unknown> } };
   if (waitForFonts && fontAwareDoc.fonts?.ready) {
