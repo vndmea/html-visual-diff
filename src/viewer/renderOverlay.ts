@@ -17,8 +17,17 @@ function getOverlayPriority(type: RenderChange['type']): number {
   return 1;
 }
 
+function resolveTarget(contentRoot: HTMLElement, nodeId: string, className: string): HTMLElement | null {
+  if (className === 'hvd-highlight-changed') {
+    const textTarget = contentRoot.querySelector<HTMLElement>(`[data-hvd-text-node-id="${nodeId}-text"]`);
+    if (textTarget) return textTarget;
+  }
+
+  return contentRoot.querySelector<HTMLElement>(`[data-hvd-node-id="${nodeId}"]`);
+}
+
 function placeHighlight(overlay: HTMLElement, contentRoot: HTMLElement, nodeId: string, className: string): void {
-  const target = contentRoot.querySelector<HTMLElement>(`[data-hvd-node-id="${nodeId}"]`);
+  const target = resolveTarget(contentRoot, nodeId, className);
   if (!target) return;
   const overlayRect = overlay.getBoundingClientRect();
   const rect = target.getBoundingClientRect();

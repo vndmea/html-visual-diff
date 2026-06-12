@@ -12,6 +12,7 @@ export interface RenderNode {
   tagName: string;
   nodeType: RenderNodeType;
   text?: string;
+  textAnchorId?: string;
   attributes: Record<string, string>;
   styles: Record<string, string>;
   rect: Rect;

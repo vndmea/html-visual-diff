@@ -35,11 +35,13 @@ export function collectRenderNode(node: Node, path: string, ctx: CollectContext)
   if (node.nodeType === Node.TEXT_NODE) {
     const text = normalizeText(node.textContent);
     if (!text) return null;
+    const id = `hvd-node-${++ctx.seq}`;
     return {
-      id: `hvd-node-${++ctx.seq}`,
+      id,
       tagName: '#text',
       nodeType: 'text',
       text,
+      textAnchorId: `${id}-text`,
       attributes: {},
       styles: {},
       rect: getTextRect(node as Text),

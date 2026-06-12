@@ -78,8 +78,8 @@ export class TwoPaneViewer implements HtmlVisualDiffViewer {
       newPane.append(newContent, newOverlay);
       this.root.append(oldPane, newPane);
 
-      const oldContentRoot = renderContent(oldContent, oldSandbox.document.body as HTMLBodyElement, this.config.old.css);
-      const newContentRoot = renderContent(newContent, newSandbox.document.body as HTMLBodyElement, this.config.new.css);
+      const oldContentRoot = renderContent(oldContent, oldSandbox.document.body as HTMLBodyElement, this.config.old.css, oldSnapshot.root);
+      const newContentRoot = renderContent(newContent, newSandbox.document.body as HTMLBodyElement, this.config.new.css, newSnapshot.root);
 
       if (this.options.align) {
         const blocks = createAlignmentBlocks(oldSnapshot.root, newSnapshot.root);
