@@ -80,4 +80,35 @@ describe('diffRenderTrees', () => {
     expect(pairs[2]?.oldNode?.id).toBe('old-2');
     expect(pairs[2]?.newNode?.id).toBe('new-2');
   });
+
+  it('captures narrowed text change segments instead of treating the whole string as changed', () => {
+    const oldRoot = node({
+      id: 'root-old',
+      tagName: 'body',
+      children: [
+        node({
+          id: 'text-old',
+          tagName: 'p',
+          text: 'Hello old world'
+        })
+      ]
+    });
+
+    const newRoot = node({
+      id: 'root-new',
+      tagName: 'body',
+      children: [
+        node({
+          id: 'text-new',
+          tagName: 'p',
+          text: 'Hello new world'
+        })
+      ]
+    });
+
+    const result = diffRenderTrees(oldRoot, newRoot);
+    const textChange = result.changes.find((change) => change.type === 'text-changed');
+    expect(textChange?.oldTextSegments?.[0]).toEqual({ start: 6, end: 9 });
+    expect(textChange?.newTextSegments?.[0]).toEqual({ start: 6, end: 9 });
+  });
 });

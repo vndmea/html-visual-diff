@@ -63,7 +63,11 @@ describe('drawOverlay', () => {
     textTarget.getBoundingClientRect = () => rect(30, 40, 60, 18);
 
     const changes: RenderChange[] = [
-      { type: 'text-changed', newNodeId: 'node-2' }
+      {
+        type: 'text-changed',
+        newNodeId: 'node-2',
+        newTextSegments: [{ start: 0, end: 5 }]
+      }
     ];
 
     drawOverlay(overlay, content, changes, 'new');
@@ -102,7 +106,11 @@ describe('drawOverlay', () => {
     }) as Range;
 
     const changes: RenderChange[] = [
-      { type: 'text-changed', newNodeId: 'node-3' }
+      {
+        type: 'text-changed',
+        newNodeId: 'node-3',
+        newTextSegments: [{ start: 0, end: 12 }]
+      }
     ];
 
     drawOverlay(overlay, content, changes, 'new');
@@ -114,5 +122,51 @@ describe('drawOverlay', () => {
 
     document.createRange = originalCreateRange;
     void textTarget;
+  });
+
+  it('highlights only the changed text subrange when segment data is provided', () => {
+    document.body.innerHTML = `
+      <div id="content">
+        <div data-hvd-node-id="node-4">
+          <span data-hvd-text-node-id="node-4-text">Hello brave world</span>
+        </div>
+      </div>
+      <div id="overlay"></div>
+    `;
+
+    const content = document.querySelector<HTMLElement>('#content')!;
+    const overlay = document.querySelector<HTMLElement>('#overlay')!;
+    const originalCreateRange = document.createRange.bind(document);
+    overlay.getBoundingClientRect = () => rect(0, 0, 200, 200);
+
+    let recordedStart = -1;
+    let recordedEnd = -1;
+    document.createRange = () => ({
+      ...originalCreateRange(),
+      setStart: (_node: Node, offset: number) => {
+        recordedStart = offset;
+      },
+      setEnd: (_node: Node, offset: number) => {
+        recordedEnd = offset;
+      },
+      getClientRects: () => [rect(48, 12, 40, 16)] as unknown as DOMRectList
+    }) as Range;
+
+    const changes: RenderChange[] = [
+      {
+        type: 'text-changed',
+        newNodeId: 'node-4',
+        newTextSegments: [{ start: 6, end: 11 }]
+      }
+    ];
+
+    drawOverlay(overlay, content, changes, 'new');
+
+    const box = overlay.querySelector('div') as HTMLDivElement;
+    expect(box.style.left).toBe('48px');
+    expect(recordedStart).toBe(6);
+    expect(recordedEnd).toBe(11);
+
+    document.createRange = originalCreateRange;
   });
 });

@@ -1,4 +1,5 @@
 import type { RenderChange } from '../core/diff/types';
+import type { TextChangeSegment } from '../core/diff/textChangeSegments';
 
 interface OverlayEntry {
   nodeId: string;
@@ -62,13 +63,54 @@ function collectHighlightRects(target: HTMLElement): OverlayRect[] {
   }];
 }
 
-function placeHighlight(overlay: HTMLElement, contentRoot: HTMLElement, nodeId: string, className: string): void {
+function collectSegmentRects(target: HTMLElement, segments: TextChangeSegment[]): OverlayRect[] {
+  const textNode = target.firstChild;
+  if (!textNode || textNode.nodeType !== Node.TEXT_NODE) return [];
+
+  const textContent = textNode.textContent || '';
+  const rects: OverlayRect[] = [];
+
+  for (const segment of segments) {
+    const start = Math.max(0, Math.min(segment.start, textContent.length));
+    const end = Math.max(start, Math.min(segment.end, textContent.length));
+    if (start === end) continue;
+
+    try {
+      const range = document.createRange();
+      range.setStart(textNode, start);
+      range.setEnd(textNode, end);
+      rects.push(...Array.from(range.getClientRects())
+        .filter((rect) => rect.width > 0 && rect.height > 0)
+        .map((rect) => ({
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height
+        })));
+    } catch {
+      return [];
+    }
+  }
+
+  return rects;
+}
+
+function placeHighlight(
+  overlay: HTMLElement,
+  contentRoot: HTMLElement,
+  nodeId: string,
+  className: string,
+  segments?: TextChangeSegment[]
+): void {
   const target = resolveTarget(contentRoot, nodeId, className);
   if (!target) return;
   const overlayRect = overlay.getBoundingClientRect();
-  const rects = collectHighlightRects(target);
+  const rects = className === 'hvd-highlight-changed' && segments?.length
+    ? collectSegmentRects(target, segments)
+    : collectHighlightRects(target);
+  const finalRects = rects.length > 0 ? rects : collectHighlightRects(target);
 
-  for (const rect of rects) {
+  for (const rect of finalRects) {
     const box = document.createElement('div');
     box.className = className;
     box.style.left = `${rect.left - overlayRect.left}px`;
@@ -110,7 +152,9 @@ export function drawOverlay(
 ): void {
   overlay.innerHTML = '';
   for (const entry of collectOverlayEntries(changes, side)) {
-    placeHighlight(overlay, contentRoot, entry.nodeId, entry.className);
+    const change = changes.find((item) => (side === 'old' ? item.oldNodeId : item.newNodeId) === entry.nodeId);
+    const segments = side === 'old' ? change?.oldTextSegments : change?.newTextSegments;
+    placeHighlight(overlay, contentRoot, entry.nodeId, entry.className, segments);
   }
 }
 

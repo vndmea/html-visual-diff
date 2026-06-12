@@ -1,4 +1,5 @@
 import type { RenderNode } from '../snapshot/types';
+import type { TextChangeSegment } from './textChangeSegments';
 
 export type RenderChangeType =
   | 'inserted'
@@ -22,6 +23,8 @@ export interface RenderChange {
   newNodeId?: string;
   oldRect?: RenderNode['rect'];
   newRect?: RenderNode['rect'];
+  oldTextSegments?: TextChangeSegment[];
+  newTextSegments?: TextChangeSegment[];
 }
 
 export interface RenderNodePair {

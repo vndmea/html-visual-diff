@@ -1,4 +1,5 @@
 import { pairChildren } from './matchRenderNodes';
+import { getTextChangeSegments } from './textChangeSegments';
 import type { RenderDiffOptions, RenderDiffResult } from './types';
 import type { RenderNode } from '../snapshot/types';
 
@@ -43,12 +44,15 @@ function walkPairs(
   result.pairs.push({ oldNode, newNode });
 
   if (options.compareText && (oldNode.text || '') !== (newNode.text || '')) {
+    const textSegments = getTextChangeSegments(oldNode.text || '', newNode.text || '');
     result.changes.push({
       type: 'text-changed',
       oldNodeId: oldNode.id,
       newNodeId: newNode.id,
       oldRect: oldNode.rect,
-      newRect: newNode.rect
+      newRect: newNode.rect,
+      oldTextSegments: textSegments.oldSegments,
+      newTextSegments: textSegments.newSegments
     });
   }
 
