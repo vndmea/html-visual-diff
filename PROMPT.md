@@ -6,7 +6,7 @@
 你是一个资深 TypeScript 前端架构师。请基于当前项目 `@vndmea/html-visual-diff` 继续开发。
 
 项目目标：
-把两个 HTML 字符串解析成 DOM，输出左右两栏的“渲染后可视化对比视图”，不是源码文本 diff。它需要同时支持 npm 包和 browser sdk.js 直接引入。
+把两个 HTML 字符串解析成 DOM，输出左右两栏的“渲染后可视化对比视图”，不是源码文本 diff。它需要同时支持 npm 安装的包和 browser sdk.js 直接引入。
 
 技术要求：
 1. TypeScript + ES2022 + Vite 8 library mode。

@@ -23,7 +23,7 @@
     "typescript",
     "sdk"
   ],
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "npm@10.9.7",
   "engines": {
     "node": ">=20.19.0"
   },
@@ -49,6 +49,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
+    "build:pages": "vite build --config vite.pages.config.ts",
     "test": "vitest run --environment jsdom",
     "test:watch": "vitest --environment jsdom",
     "typecheck": "tsc --noEmit",

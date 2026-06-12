@@ -1,5 +1,6 @@
 node_modules
 dist
+dist-pages
 coverage
 .DS_Store
 *.local
@@ -7,4 +8,3 @@ coverage
 .env.*
 npm-debug.log*
 yarn-debug.log*
-pnpm-debug.log*

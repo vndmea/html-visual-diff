@@ -206,6 +206,27 @@ dist/style.css               样式
 dist/index.d.ts              类型声明
 ```
 
+## 发布 GitHub Pages Demo
+
+仓库已经支持在 `main` 分支每次 `push` 后自动部署 GitHub Pages。
+
+第一次启用时，在 GitHub 仓库里确认：
+
+1. 进入 `Settings -> Pages`
+2. `Source` 选择 `GitHub Actions`
+3. push 到 `main` 分支
+
+工作流会执行：
+
+```bash
+npm ci
+npm run typecheck
+npm run test
+npm run build:pages
+```
+
+然后自动发布 demo 页面。
+
 ## 发布 npm
 
 ```bash

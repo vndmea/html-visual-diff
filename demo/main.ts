@@ -30,7 +30,7 @@ function render(){
     compareAttributes:true,
     syncScroll:true,
     ignoreAttributes:['data-v-app'],
-    theme:{oldPaneTitle:'旧 HTML',newPaneTitle:'新 HTML',showPlaceholders:true}
+    theme:{showPlaceholders:true}
   });
 }
 compare.addEventListener('click',render);
