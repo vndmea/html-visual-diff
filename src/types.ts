@@ -2,6 +2,45 @@ export type DiffSide = 'old' | 'new';
 export type DiffType = 'equal' | 'insert' | 'delete' | 'modify' | 'placeholder';
 export type TextDiffGranularity = 'char' | 'word';
 
+export interface HtmlVisualDiffSource {
+  html: string;
+  css?: string;
+  baseUrl?: string;
+}
+
+export interface HtmlVisualDiffOptions {
+  viewportWidth?: number;
+  syncScroll?: boolean;
+  align?: boolean;
+  compareText?: boolean;
+  compareStyle?: boolean;
+  compareLayout?: boolean;
+  layoutThreshold?: number;
+}
+
+export interface ResolvedViewerOptions {
+  viewportWidth: number;
+  syncScroll: boolean;
+  align: boolean;
+  compareText: boolean;
+  compareStyle: boolean;
+  compareLayout: boolean;
+  layoutThreshold: number;
+}
+
+export interface CreateHtmlVisualDiffOptions {
+  container: string | HTMLElement;
+  old: HtmlVisualDiffSource;
+  new: HtmlVisualDiffSource;
+  options?: HtmlVisualDiffOptions;
+}
+
+export interface HtmlVisualDiffViewer {
+  root: HTMLElement;
+  destroy(): void;
+  refresh(): Promise<void>;
+}
+
 export interface ChangeRecord {
   id: string;
   type: Exclude<DiffType, 'equal' | 'placeholder'>;

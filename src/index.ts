@@ -1,22 +1,24 @@
-export { HtmlVisualDiffViewer } from './HtmlVisualDiffViewer';
-export type { ChangeRecord, DiffSide, DiffType, HtmlVisualDiffRenderOptions, HtmlVisualDiffTheme, HtmlVisualDiffViewerApi } from './types';
+export { TwoPaneViewer } from './viewer/TwoPaneViewer';
+export { createHtmlVisualDiff } from './viewer/createHtmlVisualDiff';
+export type {
+  CreateHtmlVisualDiffOptions,
+  HtmlVisualDiffOptions,
+  HtmlVisualDiffSource,
+  HtmlVisualDiffViewer
+} from './types';
 
-import { HtmlVisualDiffViewer } from './HtmlVisualDiffViewer';
-import type { HtmlVisualDiffRenderOptions, HtmlVisualDiffViewerApi } from './types';
-
-export function createHtmlVisualDiffViewer(options: HtmlVisualDiffRenderOptions): HtmlVisualDiffViewerApi {
-  return new HtmlVisualDiffViewer(options);
-}
+import { TwoPaneViewer } from './viewer/TwoPaneViewer';
+import { createHtmlVisualDiff } from './viewer/createHtmlVisualDiff';
 
 declare global {
   interface Window {
     HtmlVisualDiff?: {
-      HtmlVisualDiffViewer: typeof HtmlVisualDiffViewer;
-      createHtmlVisualDiffViewer: typeof createHtmlVisualDiffViewer;
+      TwoPaneViewer: typeof TwoPaneViewer;
+      createHtmlVisualDiff: typeof createHtmlVisualDiff;
     };
   }
 }
 
 if (typeof window !== 'undefined') {
-  window.HtmlVisualDiff = { HtmlVisualDiffViewer, createHtmlVisualDiffViewer };
+  window.HtmlVisualDiff = { TwoPaneViewer, createHtmlVisualDiff };
 }
