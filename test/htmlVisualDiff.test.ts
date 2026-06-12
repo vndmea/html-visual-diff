@@ -55,4 +55,16 @@ describe('createHtmlVisualDiff', () => {
     expect(window.HtmlVisualDiff?.createHtmlVisualDiff).toBe(createHtmlVisualDiff);
     expect('TwoPaneViewer' in (window.HtmlVisualDiff ?? {})).toBe(false);
   });
+
+  it('renders through the browser global entry', async () => {
+    const viewer = await window.HtmlVisualDiff!.createHtmlVisualDiff({
+      container: '#app',
+      old: { html: '<div><p>Old pane</p></div>' },
+      new: { html: '<div><p>New pane</p><p>Added</p></div>' }
+    });
+
+    expect(document.querySelector('.hvd-pane-old')).toBeTruthy();
+    expect(document.querySelector('.hvd-pane-new')).toBeTruthy();
+    viewer.destroy();
+  });
 });
