@@ -5,103 +5,145 @@ import type { RenderNode } from '../snapshot/types';
 export interface AlignmentBlock {
   oldNodeId?: string;
   newNodeId?: string;
+  oldParentNodeId?: string;
+  newParentNodeId?: string;
   oldHeight?: number;
   newHeight?: number;
   spacerSide?: 'old' | 'new';
   spacerHeight?: number;
+  beforeOldNodeId?: string;
+  afterOldNodeId?: string;
+  beforeNewNodeId?: string;
+  afterNewNodeId?: string;
 }
 
-interface FlatBlockNode {
-  node: RenderNode;
-  parentPath: string;
+function isRootNode(node: RenderNode | undefined): boolean {
+  return !!node && node.tagName === 'body';
 }
 
-function flattenBlockNodes(node: RenderNode, parentPath = node.path): FlatBlockNode[] {
-  const blocks: FlatBlockNode[] = [];
-  for (const child of node.children) {
-    const hasNestedBlockChildren = child.children.some((grandChild) => isBlockNode(grandChild));
-    if (isBlockNode(child) && !hasNestedBlockChildren) {
-      blocks.push({ node: child, parentPath });
-      continue;
-    }
-    blocks.push(...flattenBlockNodes(child, child.path));
+function getRenderableElementChildren(node: RenderNode | undefined): RenderNode[] {
+  return (node?.children || []).filter((child) => child.nodeType === 'element');
+}
+
+function getBlockChildren(node: RenderNode | undefined): RenderNode[] {
+  return getRenderableElementChildren(node).filter((child) => isBlockNode(child));
+}
+
+function getParentNodeId(node: RenderNode | undefined): string | undefined {
+  if (!node || isRootNode(node)) return undefined;
+  return node.id;
+}
+
+function hasNestedBlockChildren(node: RenderNode | undefined): boolean {
+  return getBlockChildren(node).length > 0;
+}
+
+function findNextNodeId<T extends { oldNode?: RenderNode; newNode?: RenderNode }>(
+  pairs: T[],
+  startIndex: number,
+  side: 'oldNode' | 'newNode'
+): string | undefined {
+  for (let index = startIndex + 1; index < pairs.length; index += 1) {
+    const candidate = pairs[index]?.[side];
+    if (candidate) return candidate.id;
   }
-  return blocks;
+  return undefined;
 }
 
-function appendBlocks(
+function appendAlignedBlockChildren(
   blocks: AlignmentBlock[],
-  oldItems: FlatBlockNode[],
-  newItems: FlatBlockNode[]
+  oldParent: RenderNode | undefined,
+  newParent: RenderNode | undefined
 ): void {
-  const pairs = pairChildren(
-    oldItems.map((item) => item.node),
-    newItems.map((item) => item.node)
-  );
+  const oldChildren = getBlockChildren(oldParent);
+  const newChildren = getBlockChildren(newParent);
 
-  for (const pair of pairs) {
+  if (oldChildren.length === 0 && newChildren.length === 0) return;
+
+  const pairs = pairChildren(oldChildren, newChildren);
+  let previousOldNodeId: string | undefined;
+  let previousNewNodeId: string | undefined;
+
+  for (let index = 0; index < pairs.length; index += 1) {
+    const pair = pairs[index];
     const oldNode = isBlockNode(pair.oldNode) ? pair.oldNode : undefined;
     const newNode = isBlockNode(pair.newNode) ? pair.newNode : undefined;
 
-    if (!oldNode && !newNode) continue;
+    if (oldNode && newNode) {
+      if (!hasNestedBlockChildren(oldNode) && !hasNestedBlockChildren(newNode)) {
+        const oldHeight = oldNode.rect.height;
+        const newHeight = newNode.rect.height;
 
-    if (!oldNode && newNode) {
+        blocks.push({
+          oldNodeId: oldNode.id,
+          newNodeId: newNode.id,
+          oldParentNodeId: getParentNodeId(oldParent),
+          newParentNodeId: getParentNodeId(newParent),
+          oldHeight,
+          newHeight
+        });
+      }
+
+      appendAlignmentBlocks(blocks, oldNode, newNode);
+      previousOldNodeId = oldNode.id;
+      previousNewNodeId = newNode.id;
+      continue;
+    }
+
+    if (newNode) {
       blocks.push({
+        oldParentNodeId: getParentNodeId(oldParent),
+        newParentNodeId: getParentNodeId(newParent),
         newNodeId: newNode.id,
         newHeight: newNode.rect.height,
         spacerSide: 'old',
-        spacerHeight: newNode.rect.height
+        spacerHeight: newNode.rect.height,
+        beforeOldNodeId: findNextNodeId(pairs, index, 'oldNode'),
+        afterOldNodeId: previousOldNodeId
       });
+      previousNewNodeId = newNode.id;
       continue;
     }
 
-    if (oldNode && !newNode) {
+    if (oldNode) {
       blocks.push({
+        oldParentNodeId: getParentNodeId(oldParent),
+        newParentNodeId: getParentNodeId(newParent),
         oldNodeId: oldNode.id,
         oldHeight: oldNode.rect.height,
         spacerSide: 'new',
-        spacerHeight: oldNode.rect.height
+        spacerHeight: oldNode.rect.height,
+        beforeNewNodeId: findNextNodeId(pairs, index, 'newNode'),
+        afterNewNodeId: previousNewNodeId
       });
-      continue;
+      previousOldNodeId = oldNode.id;
     }
+  }
+}
 
-    const oldHeight = oldNode?.rect.height || 0;
-    const newHeight = newNode?.rect.height || 0;
-    const diff = Math.abs(oldHeight - newHeight);
+function appendAlignmentBlocks(
+  blocks: AlignmentBlock[],
+  oldNode: RenderNode | undefined,
+  newNode: RenderNode | undefined
+): void {
+  appendAlignedBlockChildren(blocks, oldNode, newNode);
 
-    blocks.push({
-      oldNodeId: oldNode?.id,
-      newNodeId: newNode?.id,
-      oldHeight,
-      newHeight,
-      spacerSide: diff > 0 ? (oldHeight < newHeight ? 'old' : 'new') : undefined,
-      spacerHeight: diff > 0 ? diff : undefined
-    });
+  const oldElements = getRenderableElementChildren(oldNode);
+  const newElements = getRenderableElementChildren(newNode);
+  const hasBlockChildren = oldElements.some((child) => isBlockNode(child)) || newElements.some((child) => isBlockNode(child));
+  if (hasBlockChildren) return;
+
+  const pairs = pairChildren(oldElements, newElements);
+  for (const pair of pairs) {
+    const oldChild = pair.oldNode?.nodeType === 'element' ? pair.oldNode : undefined;
+    const newChild = pair.newNode?.nodeType === 'element' ? pair.newNode : undefined;
+    if (!oldChild && !newChild) continue;
+    appendAlignmentBlocks(blocks, oldChild, newChild);
   }
 }
 
 export function createAlignmentBlocks(oldRoot: RenderNode, newRoot: RenderNode): AlignmentBlock[] {
   const blocks: AlignmentBlock[] = [];
-  const oldItems = flattenBlockNodes(oldRoot);
-  const newItems = flattenBlockNodes(newRoot);
-
-  const groups = new Map<string, { old: FlatBlockNode[]; new: FlatBlockNode[] }>();
-
-  for (const item of oldItems) {
-    const group = groups.get(item.parentPath) || { old: [], new: [] };
-    group.old.push(item);
-    groups.set(item.parentPath, group);
-  }
-
-  for (const item of newItems) {
-    const group = groups.get(item.parentPath) || { old: [], new: [] };
-    group.new.push(item);
-    groups.set(item.parentPath, group);
-  }
-
-  for (const { old, new: next } of groups.values()) {
-    appendBlocks(blocks, old, next);
-  }
-
+  appendAlignmentBlocks(blocks, oldRoot, newRoot);
   return blocks;
 }

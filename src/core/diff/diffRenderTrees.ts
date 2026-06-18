@@ -43,7 +43,12 @@ function walkPairs(
 
   result.pairs.push({ oldNode, newNode });
 
-  if (options.compareText && (oldNode.text || '') !== (newNode.text || '')) {
+  if (
+    options.compareText
+    && oldNode.nodeType === 'text'
+    && newNode.nodeType === 'text'
+    && (oldNode.text || '') !== (newNode.text || '')
+  ) {
     const textSegments = getTextChangeSegments(oldNode.text || '', newNode.text || '');
     result.changes.push({
       type: 'text-changed',

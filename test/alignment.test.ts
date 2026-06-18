@@ -36,6 +36,8 @@ describe('createAlignmentBlocks', () => {
 
     const blocks = createAlignmentBlocks(oldRoot, newRoot);
     expect(blocks.some((block) => block.spacerSide === 'old' && block.newNodeId === 'new-b')).toBe(true);
+    expect(blocks.find((block) => block.newNodeId === 'new-b')?.beforeOldNodeId).toBeUndefined();
+    expect(blocks.find((block) => block.newNodeId === 'new-b')?.afterOldNodeId).toBe('old-a');
   });
 
   it('adds spacer to the shorter side when heights differ', () => {
@@ -56,8 +58,11 @@ describe('createAlignmentBlocks', () => {
     });
 
     const blocks = createAlignmentBlocks(oldRoot, newRoot);
-    expect(blocks[0]?.spacerSide).toBe('old');
-    expect(blocks[0]?.spacerHeight).toBe(50);
+    expect(blocks[0]?.spacerSide).toBeUndefined();
+    expect(blocks[0]?.spacerHeight).toBeUndefined();
+    expect(blocks[0]?.oldHeight).toBe(30);
+    expect(blocks[0]?.newHeight).toBe(80);
+    expect(blocks[0]?.oldParentNodeId).toBeUndefined();
   });
 
   it('keeps block pairing scoped by parent path when nested groups differ', () => {
@@ -113,5 +118,50 @@ describe('createAlignmentBlocks', () => {
     expect(blocks[0]?.newNodeId).toBe('new-a');
     expect(blocks[1]?.oldNodeId).toBe('old-b');
     expect(blocks[1]?.newNodeId).toBe('new-b');
+    expect(blocks[0]?.oldParentNodeId).toBe('wrapper-old');
+    expect(blocks[1]?.oldParentNodeId).toBe('footer-old');
+  });
+
+  it('treats section cards with heading and paragraph children as a single alignment block', () => {
+    const oldRoot = node({
+      id: 'old-root',
+      tagName: 'body',
+      children: [
+        node({
+          id: 'old-card',
+          tagName: 'section',
+          rect: { x: 0, y: 0, width: 100, height: 80 },
+          children: [
+            node({ id: 'old-title', tagName: 'h2', rect: { x: 0, y: 0, width: 100, height: 20 } }),
+            node({ id: 'old-text', tagName: 'p', rect: { x: 0, y: 28, width: 100, height: 36 } })
+          ]
+        })
+      ]
+    });
+
+    const newRoot = node({
+      id: 'new-root',
+      tagName: 'body',
+      children: [
+        node({
+          id: 'new-card',
+          tagName: 'section',
+          rect: { x: 0, y: 0, width: 100, height: 140 },
+          children: [
+            node({ id: 'new-title', tagName: 'h2', rect: { x: 0, y: 0, width: 100, height: 20 } }),
+            node({ id: 'new-text-a', tagName: 'p', rect: { x: 0, y: 28, width: 100, height: 36 } }),
+            node({ id: 'new-text-b', tagName: 'p', rect: { x: 0, y: 72, width: 100, height: 52 } })
+          ]
+        })
+      ]
+    });
+
+    const blocks = createAlignmentBlocks(oldRoot, newRoot);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]?.oldNodeId).toBe('old-card');
+    expect(blocks[0]?.newNodeId).toBe('new-card');
+    expect(blocks[0]?.spacerSide).toBeUndefined();
+    expect(blocks[0]?.oldHeight).toBe(80);
+    expect(blocks[0]?.newHeight).toBe(140);
   });
 });

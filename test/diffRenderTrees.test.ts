@@ -16,6 +16,21 @@ function node(partial: Partial<RenderNode> & Pick<RenderNode, 'id' | 'tagName'>)
   };
 }
 
+function textNode(id: string, text: string): RenderNode {
+  return {
+    id,
+    tagName: '#text',
+    nodeType: 'text',
+    text,
+    textAnchorId: `${id}-text`,
+    attributes: {},
+    styles: {},
+    rect: { x: 0, y: 0, width: 0, height: 0 },
+    children: [],
+    path: '/'
+  };
+}
+
 describe('diffRenderTrees', () => {
   it('detects inserted, text, style, and size changes', () => {
     const oldRoot = node({
@@ -27,7 +42,8 @@ describe('diffRenderTrees', () => {
           tagName: 'p',
           text: 'old text',
           styles: { color: 'rgb(0, 0, 0)' },
-          rect: { x: 0, y: 0, width: 100, height: 20 }
+          rect: { x: 0, y: 0, width: 100, height: 20 },
+          children: [textNode('a-text', 'old text')]
         })
       ]
     });
@@ -41,13 +57,15 @@ describe('diffRenderTrees', () => {
           tagName: 'p',
           text: 'new text',
           styles: { color: 'rgb(255, 0, 0)' },
-          rect: { x: 0, y: 0, width: 130, height: 20 }
+          rect: { x: 0, y: 0, width: 130, height: 20 },
+          children: [textNode('b-text', 'new text')]
         }),
         node({
           id: 'c',
           tagName: 'div',
           text: 'added',
-          rect: { x: 0, y: 30, width: 80, height: 20 }
+          rect: { x: 0, y: 30, width: 80, height: 20 },
+          children: [textNode('c-text', 'added')]
         })
       ]
     });
@@ -87,13 +105,19 @@ describe('diffRenderTrees', () => {
         id: 'old-1',
         tagName: 'section',
         text: 'Card',
-        attributes: { 'data-diff-id': '/#document-fragment[0]/section[0]/article{data-testid=alpha}' }
+        attributes: {
+          'data-diff-id': '/#document-fragment[0]/section[0]/article{data-testid=alpha}',
+          'data-hvd-struct-key': 'data-testid=alpha'
+        }
       }),
       node({
         id: 'old-2',
         tagName: 'section',
         text: 'Card',
-        attributes: { 'data-diff-id': '/#document-fragment[0]/section[0]/article{data-testid=beta}' }
+        attributes: {
+          'data-diff-id': '/#document-fragment[0]/section[0]/article{data-testid=beta}',
+          'data-hvd-struct-key': 'data-testid=beta'
+        }
       })
     ];
 
@@ -102,19 +126,28 @@ describe('diffRenderTrees', () => {
         id: 'new-x',
         tagName: 'section',
         text: 'Card',
-        attributes: { 'data-diff-id': '/#document-fragment[0]/section[0]/article{data-testid=inserted}' }
+        attributes: {
+          'data-diff-id': '/#document-fragment[0]/section[0]/article{data-testid=inserted}',
+          'data-hvd-struct-key': 'data-testid=inserted'
+        }
       }),
       node({
         id: 'new-1',
         tagName: 'section',
         text: 'Card updated',
-        attributes: { 'data-diff-id': '/#document-fragment[0]/section[0]/article{data-testid=alpha}' }
+        attributes: {
+          'data-diff-id': '/#document-fragment[0]/section[0]/article{data-testid=alpha}',
+          'data-hvd-struct-key': 'data-testid=alpha'
+        }
       }),
       node({
         id: 'new-2',
         tagName: 'section',
         text: 'Card',
-        attributes: { 'data-diff-id': '/#document-fragment[0]/section[0]/article{data-testid=beta}' }
+        attributes: {
+          'data-diff-id': '/#document-fragment[0]/section[0]/article{data-testid=beta}',
+          'data-hvd-struct-key': 'data-testid=beta'
+        }
       })
     ];
 
@@ -126,6 +159,173 @@ describe('diffRenderTrees', () => {
     expect(pairs[2]?.newNode?.id).toBe('new-2');
   });
 
+  it('prefers matching section blocks by shared id when a new sibling is inserted', () => {
+    const oldChildren = [
+      node({
+        id: 'old-overview',
+        tagName: 'section',
+        text: 'Overview Shipment planning is on track',
+        attributes: {
+          id: 'overview',
+          class: 'chunk',
+          'data-hvd-struct-key': 'id=overview'
+        }
+      }),
+      node({
+        id: 'old-operations',
+        tagName: 'section',
+        text: 'Operations Warehouse intake labeling and lane balancing',
+        attributes: {
+          id: 'operations',
+          class: 'chunk',
+          'data-hvd-struct-key': 'id=operations'
+        }
+      }),
+      node({
+        id: 'old-risks',
+        tagName: 'section',
+        text: 'Risks Vendor approvals pending',
+        attributes: {
+          id: 'risks',
+          class: 'chunk',
+          'data-hvd-struct-key': 'id=risks'
+        }
+      })
+    ];
+
+    const newChildren = [
+      node({
+        id: 'new-overview',
+        tagName: 'section',
+        text: 'Overview Shipment planning is on track with coastal priority',
+        attributes: {
+          id: 'overview',
+          class: 'chunk',
+          'data-hvd-struct-key': 'id=overview'
+        }
+      }),
+      node({
+        id: 'new-escalation',
+        tagName: 'section',
+        text: 'New Escalation Temporary carrier capacity dip and manual checkpoint',
+        attributes: {
+          id: 'new-escalation',
+          class: 'chunk notice',
+          'data-hvd-struct-key': 'id=new-escalation'
+        }
+      }),
+      node({
+        id: 'new-operations',
+        tagName: 'section',
+        text: 'Operations Warehouse intake labeling lane balancing and late arrivals',
+        attributes: {
+          id: 'operations',
+          class: 'chunk',
+          'data-hvd-struct-key': 'id=operations'
+        }
+      }),
+      node({
+        id: 'new-risks',
+        tagName: 'section',
+        text: 'Risks Vendor approvals pending plus customs revalidation',
+        attributes: {
+          id: 'risks',
+          class: 'chunk',
+          'data-hvd-struct-key': 'id=risks'
+        }
+      })
+    ];
+
+    const pairs = pairChildren(oldChildren, newChildren);
+    expect(pairs[0]?.oldNode?.id).toBe('old-overview');
+    expect(pairs[0]?.newNode?.id).toBe('new-overview');
+    expect(pairs[1]?.newNode?.id).toBe('new-escalation');
+    expect(pairs[2]?.oldNode?.id).toBe('old-operations');
+    expect(pairs[2]?.newNode?.id).toBe('new-operations');
+    expect(pairs[3]?.oldNode?.id).toBe('old-risks');
+    expect(pairs[3]?.newNode?.id).toBe('new-risks');
+  });
+
+  it('does not treat positional structural paths as hard identity when an unkeyed block is inserted', () => {
+    const oldChildren = [
+      node({
+        id: 'old-overview',
+        tagName: 'section',
+        text: 'Overview Shipment planning is on track',
+        attributes: {
+          class: 'chunk',
+          'data-diff-id': '/#document-fragment[0]/main[0]/section[0]'
+        }
+      }),
+      node({
+        id: 'old-operations',
+        tagName: 'section',
+        text: 'Operations Warehouse intake labeling and lane balancing',
+        attributes: {
+          class: 'chunk',
+          'data-diff-id': '/#document-fragment[0]/main[0]/section[1]'
+        }
+      }),
+      node({
+        id: 'old-risks',
+        tagName: 'section',
+        text: 'Risks Vendor approvals pending',
+        attributes: {
+          class: 'chunk',
+          'data-diff-id': '/#document-fragment[0]/main[0]/section[2]'
+        }
+      })
+    ];
+
+    const newChildren = [
+      node({
+        id: 'new-overview',
+        tagName: 'section',
+        text: 'Overview Shipment planning is on track with coastal priority',
+        attributes: {
+          class: 'chunk',
+          'data-diff-id': '/#document-fragment[0]/main[0]/section[0]'
+        }
+      }),
+      node({
+        id: 'new-escalation',
+        tagName: 'section',
+        text: 'New Escalation Temporary carrier capacity dip and manual checkpoint',
+        attributes: {
+          class: 'chunk notice',
+          'data-diff-id': '/#document-fragment[0]/main[0]/section[1]'
+        }
+      }),
+      node({
+        id: 'new-operations',
+        tagName: 'section',
+        text: 'Operations Warehouse intake labeling lane balancing and late arrivals',
+        attributes: {
+          class: 'chunk',
+          'data-diff-id': '/#document-fragment[0]/main[0]/section[2]'
+        }
+      }),
+      node({
+        id: 'new-risks',
+        tagName: 'section',
+        text: 'Risks Vendor approvals pending plus customs revalidation',
+        attributes: {
+          class: 'chunk',
+          'data-diff-id': '/#document-fragment[0]/main[0]/section[3]'
+        }
+      })
+    ];
+
+    const pairs = pairChildren(oldChildren, newChildren);
+    expect(pairs[0]?.oldNode?.id).toBe('old-overview');
+    expect(pairs[0]?.newNode?.id).toBe('new-overview');
+    expect(pairs[1]?.newNode?.id).toBe('new-escalation');
+    expect(pairs[2]?.oldNode?.id).toBe('old-operations');
+    expect(pairs[2]?.newNode?.id).toBe('new-operations');
+    expect(pairs[3]?.oldNode?.id).toBe('old-risks');
+    expect(pairs[3]?.newNode?.id).toBe('new-risks');
+  });
+
   it('captures narrowed text change segments instead of treating the whole string as changed', () => {
     const oldRoot = node({
       id: 'root-old',
@@ -134,7 +334,8 @@ describe('diffRenderTrees', () => {
         node({
           id: 'text-old',
           tagName: 'p',
-          text: 'Hello old world'
+          text: 'Hello old world',
+          children: [textNode('text-old-leaf', 'Hello old world')]
         })
       ]
     });
@@ -146,7 +347,8 @@ describe('diffRenderTrees', () => {
         node({
           id: 'text-new',
           tagName: 'p',
-          text: 'Hello new world'
+          text: 'Hello new world',
+          children: [textNode('text-new-leaf', 'Hello new world')]
         })
       ]
     });
@@ -165,7 +367,8 @@ describe('diffRenderTrees', () => {
         node({
           id: 'text-old',
           tagName: 'p',
-          text: 'abcXdefYghi'
+          text: 'abcXdefYghi',
+          children: [textNode('text-old-leaf', 'abcXdefYghi')]
         })
       ]
     });
@@ -177,7 +380,8 @@ describe('diffRenderTrees', () => {
         node({
           id: 'text-new',
           tagName: 'p',
-          text: 'abcMdefNghi'
+          text: 'abcMdefNghi',
+          children: [textNode('text-new-leaf', 'abcMdefNghi')]
         })
       ]
     });
@@ -203,7 +407,8 @@ describe('diffRenderTrees', () => {
         node({
           id: 'text-old',
           tagName: 'p',
-          text: 'The quick brown fox'
+          text: 'The quick brown fox',
+          children: [textNode('text-old-leaf', 'The quick brown fox')]
         })
       ]
     });
@@ -215,7 +420,8 @@ describe('diffRenderTrees', () => {
         node({
           id: 'text-new',
           tagName: 'p',
-          text: 'The slow brown fox'
+          text: 'The slow brown fox',
+          children: [textNode('text-new-leaf', 'The slow brown fox')]
         })
       ]
     });

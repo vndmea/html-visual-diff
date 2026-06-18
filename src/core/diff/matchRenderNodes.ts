@@ -10,8 +10,24 @@ function getAttr(node: RenderNode, name: string): string {
   return node.attributes[name] || '';
 }
 
+function getStableStructuralKey(node: RenderNode): string {
+  return getAttr(node, 'data-hvd-struct-key').trim();
+}
+
 function getTextScore(oldNode: RenderNode, newNode: RenderNode): number {
   return similarity(oldNode.text || '', newNode.text || '');
+}
+
+function getLeadingChildText(node: RenderNode): string {
+  for (const child of node.children) {
+    if (child.nodeType === 'text' && child.text) return child.text;
+    if (child.nodeType === 'element' && child.text) return child.text;
+  }
+  return node.text || '';
+}
+
+function getLeadingTextScore(oldNode: RenderNode, newNode: RenderNode): number {
+  return similarity(getLeadingChildText(oldNode), getLeadingChildText(newNode));
 }
 
 function getClassScore(oldNode: RenderNode, newNode: RenderNode): number {
@@ -32,13 +48,27 @@ function getStructuralScore(oldNode: RenderNode, newNode: RenderNode): number {
   return maxCount === 0 ? 1 : 1 - (Math.abs(oldCount - newCount) / maxCount);
 }
 
+function getChildTagScore(oldNode: RenderNode, newNode: RenderNode): number {
+  const oldTags = oldNode.children
+    .filter((child) => child.nodeType === 'element')
+    .map((child) => child.tagName)
+    .join('|');
+  const newTags = newNode.children
+    .filter((child) => child.nodeType === 'element')
+    .map((child) => child.tagName)
+    .join('|');
+
+  if (!oldTags && !newTags) return 1;
+  return similarity(oldTags, newTags);
+}
+
 export function getNodeMatchScore(oldNode: RenderNode, newNode: RenderNode, options: RenderDiffOptions = {}): number {
   if (oldNode.nodeType !== newNode.nodeType) return 0;
   if (oldNode.tagName !== newNode.tagName) return 0;
 
-  const oldDiffId = getAttr(oldNode, 'data-diff-id');
-  const newDiffId = getAttr(newNode, 'data-diff-id');
-  if (oldDiffId || newDiffId) return !!oldDiffId && oldDiffId === newDiffId ? 1 : 0;
+  const oldStableKey = getStableStructuralKey(oldNode);
+  const newStableKey = getStableStructuralKey(newNode);
+  if (oldStableKey || newStableKey) return !!oldStableKey && oldStableKey === newStableKey ? 1 : 0;
 
   const oldId = getAttr(oldNode, 'id');
   const newId = getAttr(newNode, 'id');
@@ -51,10 +81,12 @@ export function getNodeMatchScore(oldNode: RenderNode, newNode: RenderNode, opti
   }
 
   const textScore = getTextScore(oldNode, newNode);
+  const leadingTextScore = getLeadingTextScore(oldNode, newNode);
   const classScore = getClassScore(oldNode, newNode);
   const structureScore = getStructuralScore(oldNode, newNode);
+  const childTagScore = getChildTagScore(oldNode, newNode);
 
-  return (textScore * 0.5) + (classScore * 0.3) + (structureScore * 0.2);
+  return (leadingTextScore * 0.4) + (textScore * 0.25) + (classScore * 0.2) + (structureScore * 0.1) + (childTagScore * 0.05);
 }
 
 export function nodesMatch(oldNode: RenderNode, newNode: RenderNode, options: RenderDiffOptions = {}): boolean {

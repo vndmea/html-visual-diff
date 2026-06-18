@@ -74,7 +74,7 @@ describe('drawOverlay', () => {
 
     const box = overlay.querySelector('div') as HTMLDivElement;
     expect(box).toBeTruthy();
-    expect(box.className).toBe('hvd-highlight-changed');
+    expect(box.className).toBe('hvd-highlight-inserted');
     expect(box.style.left).toBe('30px');
     expect(box.style.width).toBe('60px');
     expect(box.style.height).toBe('18px');
@@ -164,9 +164,62 @@ describe('drawOverlay', () => {
 
     const box = overlay.querySelector('div') as HTMLDivElement;
     expect(box.style.left).toBe('48px');
+    expect(box.className).toBe('hvd-highlight-inserted');
     expect(recordedStart).toBe(6);
     expect(recordedEnd).toBe(11);
 
     document.createRange = originalCreateRange;
+  });
+
+  it('does not draw whole-block overlays for style-only changes', () => {
+    document.body.innerHTML = `
+      <div id="content">
+        <div data-hvd-node-id="node-5">A</div>
+      </div>
+      <div id="overlay"></div>
+    `;
+
+    const content = document.querySelector<HTMLElement>('#content')!;
+    const overlay = document.querySelector<HTMLElement>('#overlay')!;
+    overlay.getBoundingClientRect = () => rect(0, 0, 200, 200);
+
+    const changes: RenderChange[] = [
+      { type: 'style-changed', newNodeId: 'node-5' },
+      { type: 'layout-changed', newNodeId: 'node-5' }
+    ];
+
+    drawOverlay(overlay, content, changes, 'new');
+    expect(overlay.querySelectorAll('div')).toHaveLength(0);
+  });
+
+  it('uses descendant text anchors instead of the whole container for inserted blocks', () => {
+    document.body.innerHTML = `
+      <div id="content">
+        <section data-hvd-node-id="node-6">
+          <h2><span data-hvd-text-node-id="title-6-text">New Escalation</span></h2>
+          <p><span data-hvd-text-node-id="body-6-text">Added paragraph</span></p>
+        </section>
+      </div>
+      <div id="overlay"></div>
+    `;
+
+    const content = document.querySelector<HTMLElement>('#content')!;
+    const overlay = document.querySelector<HTMLElement>('#overlay')!;
+    const textAnchors = content.querySelectorAll<HTMLElement>('[data-hvd-text-node-id]');
+
+    overlay.getBoundingClientRect = () => rect(0, 0, 400, 300);
+    (textAnchors[0] as HTMLElement).getBoundingClientRect = () => rect(20, 16, 120, 18);
+    (textAnchors[1] as HTMLElement).getBoundingClientRect = () => rect(20, 46, 140, 18);
+
+    const changes: RenderChange[] = [
+      { type: 'inserted', newNodeId: 'node-6' }
+    ];
+
+    drawOverlay(overlay, content, changes, 'new');
+
+    const boxes = overlay.querySelectorAll('div');
+    expect(boxes).toHaveLength(2);
+    expect((boxes[0] as HTMLDivElement).style.left).toBe('20px');
+    expect((boxes[1] as HTMLDivElement).style.top).toBe('46px');
   });
 });

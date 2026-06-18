@@ -5,7 +5,7 @@ import { renderSandbox } from '../core/render/renderSandbox';
 import { createRenderSnapshot } from '../core/snapshot/createRenderSnapshot';
 import { diffRenderTrees } from '../core/diff/diffRenderTrees';
 import { createAlignmentBlocks } from '../core/alignment/createAlignmentBlocks';
-import { insertSpacers } from '../core/alignment/insertSpacers';
+import { calibrateAlignment, insertSpacers } from '../core/alignment/insertSpacers';
 import { renderContent } from './renderContent';
 import { bindOverlayUpdates } from './renderOverlay';
 import { syncScroll } from './syncScroll';
@@ -81,9 +81,10 @@ export class TwoPaneViewer implements HtmlVisualDiffViewer {
       const oldContentRoot = renderContent(oldContent, oldSandbox.document.body as HTMLBodyElement, this.config.old.css, oldSnapshot.root);
       const newContentRoot = renderContent(newContent, newSandbox.document.body as HTMLBodyElement, this.config.new.css, newSnapshot.root);
 
+      let alignmentBlocks: ReturnType<typeof createAlignmentBlocks> = [];
       if (this.options.align) {
-        const blocks = createAlignmentBlocks(oldSnapshot.root, newSnapshot.root);
-        insertSpacers(oldContentRoot, newContentRoot, blocks);
+        alignmentBlocks = createAlignmentBlocks(oldSnapshot.root, newSnapshot.root);
+        insertSpacers(oldContentRoot, newContentRoot, alignmentBlocks);
       }
 
       this.disposers.push(bindOverlayUpdates(oldPane, oldOverlay, oldContentRoot, diff.changes, 'old'));
@@ -95,6 +96,18 @@ export class TwoPaneViewer implements HtmlVisualDiffViewer {
 
       this.mountEl.innerHTML = '';
       this.mountEl.appendChild(this.root);
+
+      if (this.options.align && alignmentBlocks.length > 0) {
+        const syncAlignment = () => calibrateAlignment(oldContentRoot, newContentRoot, alignmentBlocks);
+        requestAnimationFrame(syncAlignment);
+
+        if (typeof ResizeObserver !== 'undefined') {
+          const observer = new ResizeObserver(syncAlignment);
+          observer.observe(oldPane);
+          observer.observe(newPane);
+          this.disposers.push(() => observer.disconnect());
+        }
+      }
     } finally {
       oldSandbox.dispose();
       newSandbox.dispose();

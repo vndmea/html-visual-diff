@@ -13,25 +13,40 @@ interface OverlayRect {
   height: number;
 }
 
-function getOverlayClass(type: RenderChange['type']): string {
+function getOverlayClass(type: RenderChange['type'], side: 'old' | 'new'): string | null {
   if (type === 'inserted') return 'hvd-highlight-inserted';
   if (type === 'deleted') return 'hvd-highlight-deleted';
-  return 'hvd-highlight-changed';
+  if (type === 'text-changed') return side === 'old' ? 'hvd-highlight-deleted' : 'hvd-highlight-inserted';
+  return null;
 }
 
 function getOverlayPriority(type: RenderChange['type']): number {
   if (type === 'inserted' || type === 'deleted') return 3;
-  if (type === 'size-changed' || type === 'layout-changed') return 2;
-  return 1;
+  if (type === 'text-changed') return 2;
+  return 0;
 }
 
-function resolveTarget(contentRoot: HTMLElement, nodeId: string, className: string): HTMLElement | null {
-  if (className === 'hvd-highlight-changed') {
+function resolveTarget(contentRoot: HTMLElement, nodeId: string, preferTextAnchor: boolean): HTMLElement | null {
+  const directTextTarget = contentRoot.querySelector<HTMLElement>(`[data-hvd-text-node-id="${nodeId}-text"]`);
+  if (directTextTarget) return directTextTarget;
+
+  if (preferTextAnchor) {
     const textTarget = contentRoot.querySelector<HTMLElement>(`[data-hvd-text-node-id="${nodeId}-text"]`);
     if (textTarget) return textTarget;
   }
 
   return contentRoot.querySelector<HTMLElement>(`[data-hvd-node-id="${nodeId}"]`);
+}
+
+function collectDescendantTextRects(target: HTMLElement): OverlayRect[] {
+  const anchors = Array.from(target.querySelectorAll<HTMLElement>('[data-hvd-text-node-id]'));
+  const rects: OverlayRect[] = [];
+
+  for (const anchor of anchors) {
+    rects.push(...collectHighlightRects(anchor));
+  }
+
+  return rects;
 }
 
 function collectHighlightRects(target: HTMLElement): OverlayRect[] {
@@ -102,12 +117,14 @@ function placeHighlight(
   className: string,
   segments?: TextChangeSegment[]
 ): void {
-  const target = resolveTarget(contentRoot, nodeId, className);
+  const target = resolveTarget(contentRoot, nodeId, !!segments?.length);
   if (!target) return;
   const overlayRect = overlay.getBoundingClientRect();
-  const rects = className === 'hvd-highlight-changed' && segments?.length
+  const rects = segments?.length
     ? collectSegmentRects(target, segments)
-    : collectHighlightRects(target);
+    : className === 'hvd-highlight-inserted' || className === 'hvd-highlight-deleted'
+      ? collectDescendantTextRects(target)
+      : collectHighlightRects(target);
   const finalRects = rects.length > 0 ? rects : collectHighlightRects(target);
 
   for (const rect of finalRects) {
@@ -129,11 +146,13 @@ function collectOverlayEntries(changes: RenderChange[], side: 'old' | 'new'): Ov
     if (!nodeId) continue;
 
     const priority = getOverlayPriority(change.type);
+    const className = getOverlayClass(change.type, side);
+    if (!className || priority <= 0) continue;
     const existing = ranked.get(nodeId);
     if (!existing || priority >= existing.priority) {
       ranked.set(nodeId, {
         priority,
-        className: getOverlayClass(change.type)
+        className
       });
     }
   }
