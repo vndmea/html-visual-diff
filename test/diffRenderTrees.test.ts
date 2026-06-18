@@ -81,6 +81,51 @@ describe('diffRenderTrees', () => {
     expect(pairs[2]?.newNode?.id).toBe('new-2');
   });
 
+  it('prefers xml-diff-kit structural ids over sibling position when keyed nodes shift', () => {
+    const oldChildren = [
+      node({
+        id: 'old-1',
+        tagName: 'section',
+        text: 'Card',
+        attributes: { 'data-diff-id': '/#document-fragment[0]/section[0]/article{data-testid=alpha}' }
+      }),
+      node({
+        id: 'old-2',
+        tagName: 'section',
+        text: 'Card',
+        attributes: { 'data-diff-id': '/#document-fragment[0]/section[0]/article{data-testid=beta}' }
+      })
+    ];
+
+    const newChildren = [
+      node({
+        id: 'new-x',
+        tagName: 'section',
+        text: 'Card',
+        attributes: { 'data-diff-id': '/#document-fragment[0]/section[0]/article{data-testid=inserted}' }
+      }),
+      node({
+        id: 'new-1',
+        tagName: 'section',
+        text: 'Card updated',
+        attributes: { 'data-diff-id': '/#document-fragment[0]/section[0]/article{data-testid=alpha}' }
+      }),
+      node({
+        id: 'new-2',
+        tagName: 'section',
+        text: 'Card',
+        attributes: { 'data-diff-id': '/#document-fragment[0]/section[0]/article{data-testid=beta}' }
+      })
+    ];
+
+    const pairs = pairChildren(oldChildren, newChildren);
+    expect(pairs[0]?.newNode?.id).toBe('new-x');
+    expect(pairs[1]?.oldNode?.id).toBe('old-1');
+    expect(pairs[1]?.newNode?.id).toBe('new-1');
+    expect(pairs[2]?.oldNode?.id).toBe('old-2');
+    expect(pairs[2]?.newNode?.id).toBe('new-2');
+  });
+
   it('captures narrowed text change segments instead of treating the whole string as changed', () => {
     const oldRoot = node({
       id: 'root-old',

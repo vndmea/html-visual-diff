@@ -108,4 +108,42 @@ describe('renderSandbox', () => {
       sandbox.dispose();
     }
   });
+
+  it('annotates equivalent keyed elements with stable structural diff ids', async () => {
+    const oldSandbox = await renderSandbox({
+      html: `
+        <ul>
+          <li data-testid="alpha"><span>Card</span></li>
+          <li data-testid="beta"><span>Card</span></li>
+        </ul>
+      `
+    });
+
+    const newSandbox = await renderSandbox({
+      html: `
+        <ul>
+          <li data-testid="inserted"><span>New</span></li>
+          <li data-testid="alpha"><span>Card updated</span></li>
+          <li data-testid="beta"><span>Card</span></li>
+        </ul>
+      `
+    });
+
+    try {
+      const oldAlpha = oldSandbox.document.querySelector('[data-testid="alpha"]');
+      const newAlpha = newSandbox.document.querySelector('[data-testid="alpha"]');
+      const oldBeta = oldSandbox.document.querySelector('[data-testid="beta"]');
+      const newBeta = newSandbox.document.querySelector('[data-testid="beta"]');
+      const inserted = newSandbox.document.querySelector('[data-testid="inserted"]');
+
+      expect(oldAlpha?.getAttribute('data-diff-id')).toBeTruthy();
+      expect(oldAlpha?.getAttribute('data-diff-id')).toBe(newAlpha?.getAttribute('data-diff-id'));
+      expect(oldBeta?.getAttribute('data-diff-id')).toBe(newBeta?.getAttribute('data-diff-id'));
+      expect(inserted?.getAttribute('data-diff-id')).not.toBe(newAlpha?.getAttribute('data-diff-id'));
+      expect(newAlpha?.getAttribute('data-hvd-struct-key')).toBe('data-testid=alpha');
+    } finally {
+      oldSandbox.dispose();
+      newSandbox.dispose();
+    }
+  });
 });

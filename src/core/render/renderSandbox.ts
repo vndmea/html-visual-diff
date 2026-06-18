@@ -1,5 +1,6 @@
 import { sanitizeHtml } from './sanitizeHtml';
 import { waitForRenderReady } from './waitForRenderReady';
+import { annotateStructuralDiffIds } from './annotateStructuralDiffIds';
 
 export interface RenderInput {
   html: string;
@@ -39,11 +40,13 @@ function absolutizeResourceUrls(doc: Document): void {
 }
 
 function createFallbackDocument(input: RenderInput, viewportWidth: number): RenderSandboxResult {
+  const sanitizedHtml = sanitizeHtml(input.html);
   const doc = document.implementation.createHTMLDocument('');
   doc.open();
-  doc.write(`<!doctype html><html><head>${input.baseUrl ? `<base href="${input.baseUrl}">` : ''}<style>html,body{margin:0;width:${viewportWidth}px;min-width:${viewportWidth}px;}</style><style>${input.css || ''}</style></head><body>${sanitizeHtml(input.html)}</body></html>`);
+  doc.write(`<!doctype html><html><head>${input.baseUrl ? `<base href="${input.baseUrl}">` : ''}<style>html,body{margin:0;width:${viewportWidth}px;min-width:${viewportWidth}px;}</style><style>${input.css || ''}</style></head><body>${sanitizedHtml}</body></html>`);
   doc.close();
   absolutizeResourceUrls(doc);
+  annotateStructuralDiffIds(doc.body as HTMLBodyElement, sanitizedHtml);
   return {
     document: doc,
     iframe: null,
@@ -53,6 +56,7 @@ function createFallbackDocument(input: RenderInput, viewportWidth: number): Rend
 
 export async function renderSandbox(input: RenderInput, options: RenderOptions = {}): Promise<RenderSandboxResult> {
   const viewportWidth = options.viewportWidth ?? 960;
+  const sanitizedHtml = sanitizeHtml(input.html);
   const iframe = document.createElement('iframe');
   iframe.setAttribute('sandbox', 'allow-same-origin');
   iframe.setAttribute('aria-hidden', 'true');
@@ -74,10 +78,11 @@ export async function renderSandbox(input: RenderInput, options: RenderOptions =
   }
 
   doc.open();
-  doc.write(`<!doctype html><html><head>${input.baseUrl ? `<base href="${input.baseUrl}">` : ''}<style>html,body{margin:0;width:${viewportWidth}px;min-width:${viewportWidth}px;overflow-wrap:anywhere;}img{max-width:100%;}</style><style>${input.css || ''}</style></head><body>${sanitizeHtml(input.html)}</body></html>`);
+  doc.write(`<!doctype html><html><head>${input.baseUrl ? `<base href="${input.baseUrl}">` : ''}<style>html,body{margin:0;width:${viewportWidth}px;min-width:${viewportWidth}px;overflow-wrap:anywhere;}img{max-width:100%;}</style><style>${input.css || ''}</style></head><body>${sanitizedHtml}</body></html>`);
   doc.close();
 
   absolutizeResourceUrls(doc);
+  annotateStructuralDiffIds(doc.body as HTMLBodyElement, sanitizedHtml);
   await waitForRenderReady(doc, {
     waitForFonts: options.waitForFonts,
     waitForImages: options.waitForImages
